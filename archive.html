@@ -233,6 +233,26 @@
     object-fit: contain;
     border-radius: 2px;
     transition: opacity 0.2s;
+    transform-origin: 0 0;
+    touch-action: none;
+    will-change: transform;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    cursor: zoom-in;
+  }
+  #lightbox-img.zoomed { cursor: grab; }
+  #lightbox-img.panning { cursor: grabbing; }
+
+  #lb-stage {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
   }
 
   #lightbox-nav {
@@ -318,7 +338,9 @@
 
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="image viewer">
   <button id="close-lb" aria-label="close"><i class="ti ti-x"></i></button>
-  <img id="lightbox-img" src="" alt="full size preview" />
+  <div id="lb-stage">
+    <img id="lightbox-img" src="" alt="full size preview" />
+  </div>
   <div id="lightbox-nav">
     <button class="nav-arrow" id="prev-btn" aria-label="previous"><i class="ti ti-chevron-left"></i></button>
     <span id="lb-counter">1 / 1</span>
@@ -470,29 +492,154 @@ async function dbDelete(id) {
     document.removeEventListener('keydown', handleKey);
   }
   function showLbImage() {
+    resetZoom();
     lbImg.style.opacity = 0;
     lbImg.src = _lbImages[lbIndex].src;
-    lbImg.onload = () => { lbImg.style.opacity = 1; };
+    lbImg.onload = () => { lbImg.style.opacity = 1; resetZoom(); };
     lbCounter.textContent = (lbIndex + 1) + ' / ' + _lbImages.length;
   }
   function handleKey(e) {
     if (e.key === 'Escape')      closeLightbox();
     if (e.key === 'ArrowRight')  { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); }
     if (e.key === 'ArrowLeft')   { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); }
+    if (e.key === '0' || e.key === 'Escape') resetZoom();
   }
 
-  let lbTouchX = 0;
-  lightbox.addEventListener('touchstart', e => { lbTouchX = e.changedTouches[0].clientX; }, { passive: true });
-  lightbox.addEventListener('touchend', e => {
+  // ── Zoom & pan ─────────────────────────────────────────────────
+  const lbStage = document.getElementById('lb-stage');
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 6;
+  let scale = 1, tx = 0, ty = 0;
+  const activePointers = new Map();
+  let pinchStartDist = 0, pinchStartScale = 1, pinchMid = { x: 0, y: 0 };
+  let panLastX = 0, panLastY = 0, panMoved = false;
+
+  function applyTransform() {
+    lbImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    lbImg.classList.toggle('zoomed', scale > 1.001);
+  }
+  function resetZoom() {
+    scale = 1; tx = 0; ty = 0;
+    applyTransform();
+    lbImg.classList.remove('panning');
+  }
+  function clampPan() {
+    // Allow image to be panned but keep some of it onscreen
+    const rect = lbImg.getBoundingClientRect();
+    const sRect = lbStage.getBoundingClientRect();
+    // No clamping at scale 1
+    if (scale <= 1.001) { tx = 0; ty = 0; return; }
+    const maxX = Math.max(0, (rect.width - sRect.width) / 2 + 40);
+    const maxY = Math.max(0, (rect.height - sRect.height) / 2 + 40);
+    if (tx >  maxX) tx =  maxX;
+    if (tx < -maxX) tx = -maxX;
+    if (ty >  maxY) ty =  maxY;
+    if (ty < -maxY) ty = -maxY;
+  }
+  function zoomAt(clientX, clientY, newScale) {
+    newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+    const rect = lbImg.getBoundingClientRect();
+    // Point on the image (in image-local coords before transform)
+    const imgCenterX = rect.left + rect.width / 2;
+    const imgCenterY = rect.top + rect.height / 2;
+    const offsetX = clientX - imgCenterX;
+    const offsetY = clientY - imgCenterY;
+    const ratio = newScale / scale;
+    tx = (tx - offsetX) * ratio + offsetX;
+    ty = (ty - offsetY) * ratio + offsetY;
+    scale = newScale;
+    if (scale <= 1.001) { scale = 1; tx = 0; ty = 0; }
+    clampPan();
+    applyTransform();
+  }
+
+  // Wheel zoom (desktop)
+  lbStage.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    zoomAt(e.clientX, e.clientY, scale * factor);
+  }, { passive: false });
+
+  // Double-click toggle zoom
+  lbImg.addEventListener('dblclick', e => {
+    e.preventDefault();
+    if (scale > 1.001) resetZoom();
+    else zoomAt(e.clientX, e.clientY, 2.5);
+  });
+
+  // Pointer-based pan + pinch
+  lbImg.addEventListener('pointerdown', e => {
+    if (e.button && e.button !== 0) return;
+    lbImg.setPointerCapture(e.pointerId);
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    panMoved = false;
+
+    if (activePointers.size === 2) {
+      // Start pinch
+      const pts = Array.from(activePointers.values());
+      pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      pinchStartScale = scale;
+      pinchMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+    } else if (activePointers.size === 1) {
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      if (scale > 1.001) lbImg.classList.add('panning');
+    }
+  });
+
+  lbImg.addEventListener('pointermove', e => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      const newScale = pinchStartScale * (dist / pinchStartDist);
+      zoomAt(pinchMid.x, pinchMid.y, newScale);
+      panMoved = true;
+    } else if (activePointers.size === 1 && scale > 1.001) {
+      const dx = e.clientX - panLastX;
+      const dy = e.clientY - panLastY;
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      tx += dx; ty += dy;
+      if (Math.abs(dx) + Math.abs(dy) > 2) panMoved = true;
+      clampPan();
+      applyTransform();
+    }
+  });
+
+  function endPointer(e) {
+    if (activePointers.has(e.pointerId)) activePointers.delete(e.pointerId);
+    lbImg.classList.remove('panning');
+  }
+  lbImg.addEventListener('pointerup', endPointer);
+  lbImg.addEventListener('pointercancel', endPointer);
+  lbImg.addEventListener('pointerleave', endPointer);
+
+  // Swipe nav on stage — only when not zoomed
+  let lbTouchX = 0, lbTouchY = 0, lbTouchActive = false;
+  lbStage.addEventListener('touchstart', e => {
+    if (scale > 1.001 || e.touches.length !== 1) { lbTouchActive = false; return; }
+    lbTouchActive = true;
+    lbTouchX = e.changedTouches[0].clientX;
+    lbTouchY = e.changedTouches[0].clientY;
+  }, { passive: true });
+  lbStage.addEventListener('touchend', e => {
+    if (!lbTouchActive || scale > 1.001) return;
     const dx = e.changedTouches[0].clientX - lbTouchX;
-    if (Math.abs(dx) > 40) {
+    const dy = e.changedTouches[0].clientY - lbTouchY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
       lbIndex = dx < 0 ? (lbIndex + 1) % _lbImages.length : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
       showLbImage();
     }
   }, { passive: true });
 
   document.getElementById('close-lb').addEventListener('click', closeLightbox);
-  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  lightbox.addEventListener('click', e => {
+    // Only close when clicking the backdrop, and ignore clicks that came from a pan gesture
+    if (e.target === lightbox && !panMoved) closeLightbox();
+  });
   document.getElementById('next-btn').addEventListener('click', () => { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); });
   document.getElementById('prev-btn').addEventListener('click', () => { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); });
 
