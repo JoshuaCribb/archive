@@ -36,7 +36,6 @@
     -webkit-user-select: none;
   }
 
-  /* Tap-to-enter overlay — shown only when autoplay+audio is blocked */
   #gate {
     position: fixed;
     inset: 0;
@@ -46,7 +45,6 @@
     justify-content: center;
     z-index: 20;
     cursor: pointer;
-    /* hidden by default; JS shows it only when needed */
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -62,7 +60,6 @@
     letter-spacing: 0.25em;
     text-transform: uppercase;
     opacity: 0.5;
-    /* subtle pulse so the user knows to tap */
     animation: pulse 2s ease-in-out infinite;
   }
   @keyframes pulse {
@@ -70,7 +67,6 @@
     50%       { opacity: 0.7; }
   }
 
-  /* Smooth fade-to-black before redirect */
   #fade {
     position: fixed;
     inset: 0;
@@ -94,18 +90,21 @@
   preload="auto"
 ></video>
 
-<!-- shown only when the browser blocks autoplay with audio -->
 <div id="gate">
-  <span id="gate-label">WELCOME</span>
+  <span id="gate-label">tap to enter</span>
 </div>
 
 <div id="fade"></div>
 
 <script>
 (function () {
-  const video = document.getElementById('intro-video');
-  const gate  = document.getElementById('gate');
-  const fade  = document.getElementById('fade');
+  var video = document.getElementById('intro-video');
+  var gate  = document.getElementById('gate');
+  var fade  = document.getElementById('fade');
+
+  // True for any touch-primary device (iOS, Android, etc.)
+  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+              || (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform));
 
   function goToLogin() {
     fade.classList.add('out');
@@ -122,26 +121,26 @@
     video.play().catch(function () { goToLogin(); });
   }
 
-  gate.addEventListener('click',     dismissGateAndPlay);
+  gate.addEventListener('click', dismissGateAndPlay);
   gate.addEventListener('touchstart', function (e) {
-    e.preventDefault();          // prevent ghost click
+    e.preventDefault();
     dismissGateAndPlay();
   }, { passive: false });
 
-  // Try autoplay WITH audio first.
-  // Browsers that allow it (desktop after prior interaction, some Android)
-  // will just play. Browsers that block it will reject the promise → show gate.
   video.muted = false;
-  var playPromise = video.play();
 
-  if (playPromise !== undefined) {
-    playPromise.catch(function () {
-      // Autoplay with audio blocked — show the tap gate
-      gate.classList.add('visible');
-    });
-  } else {
-    // Older browsers: can't detect block, show gate to be safe
+  if (isMobile) {
+    // Mobile: always show the gate — browsers require a gesture for audio
     gate.classList.add('visible');
+  } else {
+    // Desktop: try autoplay with audio; only show gate if it fails
+    var playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(function () {
+        gate.classList.add('visible');
+      });
+    }
+    // If play() returns undefined (very old browsers) just let it try silently
   }
 })();
 </script>
