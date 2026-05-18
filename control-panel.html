@@ -263,12 +263,35 @@
     0%,100%{ transform: scale(1);   opacity: 0.55; }
     50%    { transform: scale(1.08);opacity: 0.18; }
   }
+
+  /* ----- Logout button ----- */
+  #logout-btn{
+    position: fixed;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    right:  calc(10px + env(safe-area-inset-right, 0px));
+    z-index: 20;
+    background: rgba(20,4,4,0.65);
+    border: 1px solid rgba(138,255,106,0.35);
+    border-radius: 4px;
+    color: var(--tr-green);
+    font-family: var(--font-ui);
+    font-size: clamp(11px, 3vw, 14px);
+    letter-spacing: 3px;
+    padding: 6px 10px;
+    cursor: pointer;
+    text-shadow: 0 0 5px var(--tr-green), 1px 1px 0 #000;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  #logout-btn:hover, #logout-btn:active{
+    background: rgba(138,255,106,0.12);
+    border-color: var(--tr-green);
+  }
 </style>
 </head>
 <body>
 <div class="stage">
-
-  <h1 class="title">CONTROL PANEL</h1>
 
   <div class="ring-stage">
     <div class="ring" id="ring"></div>
@@ -312,6 +335,8 @@
 
 </div>
 
+<button id="logout-btn" type="button">LOGOUT</button>
+
 <script>
 Auth.require();
 const USE_REAL_BG = false;
@@ -320,7 +345,7 @@ const REAL_BG_PATH = 'assets/tr1-wallpaper.png';
 const items = [
   { name: "LIFESTYLE", href: "archive.html",      icon: "camera"     },
   { name: "ABOUT",     href: "#about",            icon: "compass"    },
-  { name: "PROJECTS",  href: "#projects",         icon: "pistols"    },
+  { name: "PROJECTS",  href: "projects.html",     icon: "sdcard"     },
   { name: "BLOG",      href: "#blog",             icon: "shotgun"    },
   { name: "MUSIC",     href: "#music",            icon: "uzis"       },
   { name: "CONTACT",   href: "#contact",          icon: "medi-small" },
@@ -333,6 +358,33 @@ if (USE_REAL_BG) {
 }
 
 const ICONS = {
+  sdcard: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.5">
+        <!-- card body with notched top-right -->
+        <path d="M 28 18 L 64 18 L 78 32 L 78 84 Q 78 88 74 88 L 28 88 Q 24 88 24 84 L 24 22 Q 24 18 28 18 Z"
+              fill="#d4b04a" stroke="#5a4010"/>
+        <!-- top label area -->
+        <rect x="30" y="40" width="42" height="36" rx="2" fill="#e8c965" stroke="#7a5818" stroke-width="1"/>
+        <!-- gold contact pins on top -->
+        <g fill="#b8902a" stroke="#5a4010" stroke-width="0.8">
+          <rect x="30" y="22" width="3" height="12"/>
+          <rect x="35" y="22" width="3" height="12"/>
+          <rect x="40" y="22" width="3" height="12"/>
+          <rect x="45" y="22" width="3" height="12"/>
+          <rect x="50" y="22" width="3" height="12"/>
+          <rect x="55" y="22" width="3" height="12"/>
+          <rect x="60" y="22" width="3" height="12"/>
+          <rect x="65" y="22" width="3" height="12"/>
+          <rect x="70" y="22" width="3" height="12"/>
+        </g>
+        <!-- highlight stripe -->
+        <rect x="32" y="44" width="38" height="3" fill="rgba(255,255,255,0.5)" stroke="none"/>
+        <!-- "SD" text -->
+        <text x="51" y="68" font-family="monospace" font-size="14" font-weight="bold"
+              fill="#5a4010" text-anchor="middle" stroke="none">SD</text>
+      </g>
+    </svg>`,
   compass: `
     <svg viewBox="0 0 100 100">
       <defs>
@@ -653,6 +705,19 @@ document.getElementById('btn-right').addEventListener('click', () => rotate(1));
 
 window.addEventListener('resize', layout);
 layout();
+
+/* ---- Logout ---- */
+document.getElementById('logout-btn').addEventListener('click', () => {
+  try {
+    if (window.Auth && typeof Auth.logout === 'function') {
+      Auth.logout();
+      return;
+    }
+  } catch(e){}
+  // Fallback: clear common session keys and redirect
+  try { sessionStorage.clear(); } catch(e){}
+  window.location.href = 'login.html';
+});
 </script>
 </body>
 </html>
