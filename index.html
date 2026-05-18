@@ -123,17 +123,13 @@
 
   function unlockAudio() {
     gate.classList.remove('visible');
-    // Resume AudioContext first — this is what actually unlocks audio in Chrome
-    var AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      var ctx = new AudioContext();
-      var src = ctx.createMediaElementSource(video);
-      src.connect(ctx.destination);
-      ctx.resume();
-    }
+    video.pause();
     video.muted = false;
     video.currentTime = 0;
-    video.play().catch(function () { goToLogin(); });
+    var p = video.play();
+    if (p !== undefined) {
+      p.catch(function () { goToLogin(); });
+    }
   }
 
   gate.addEventListener('click', unlockAudio);
