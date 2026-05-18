@@ -1,12 +1,11 @@
-const CACHE = 'archive-v2';
+const CACHE = 'archive-v3';
 const PRECACHE = [
   './index.html',
   './login.html',
   './control-panel.html',
   './archive.html',
   './auth.js',
-  './manifest.json',
-  './intro.mp4'
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
@@ -25,6 +24,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+
+  // Never cache API calls — always go to network
+  if (e.request.url.includes('/api/')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;

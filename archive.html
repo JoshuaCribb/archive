@@ -516,16 +516,11 @@ async function dbDelete(id) {
   }
 
   async function resolvePinterest(url) {
-    const endpoint = 'https://www.pinterest.com/oembed.json?url=' + encodeURIComponent(url);
-    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(endpoint);
-    const r = await fetch(proxy);
-    if (!r.ok) throw new Error('Pinterest fetch failed');
+    const r = await fetch('/api/pinterest?url=' + encodeURIComponent(url));
+    if (!r.ok) throw new Error('Pinterest API failed');
     const data = await r.json();
-    if (data.thumbnail_url) {
-      // Swap scaled size path for originals
-      return data.thumbnail_url.replace(/\/\d+x\//, '/originals/');
-    }
-    throw new Error('No image found');
+    if (data.img) return data.img;
+    throw new Error(data.error || 'No image found');
   }
 
   async function addFromUrl() {
