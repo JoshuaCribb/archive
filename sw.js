@@ -1,10 +1,12 @@
-const CACHE = 'archive-v1';
+const CACHE = 'archive-v2';
 const PRECACHE = [
+  './index.html',
   './login.html',
   './control-panel.html',
   './archive.html',
   './auth.js',
-  './manifest.json'
+  './manifest.json',
+  './intro.mp4'
 ];
 
 self.addEventListener('install', e => {
