@@ -103,9 +103,6 @@
   var gate  = document.getElementById('gate');
   var fade  = document.getElementById('fade');
 
-  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-              || (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform));
-
   function goToLogin() {
     fade.classList.add('out');
     setTimeout(function () {
@@ -116,43 +113,26 @@
   video.addEventListener('ended', goToLogin);
   video.addEventListener('error', goToLogin);
 
-  // Step 1: start muted (always works, no gesture needed)
+  // Start muted — works everywhere without a gesture
   video.muted = true;
   video.play().catch(function () {});
 
-  if (isMobile) {
-    // Step 2 (mobile): show gate, on tap unmute and seek back to 0
-    // The gesture unlocks audio BEFORE we unmute — this is the key difference
-    gate.classList.add('visible');
+  // Always show the gate — all browsers (desktop and mobile) require
+  // a user gesture before audio can play, no exceptions
+  gate.classList.add('visible');
 
-    function unlockAudio() {
-      gate.classList.remove('visible');
-      video.muted = false;
-      video.currentTime = 0;
-      video.play().catch(function () { goToLogin(); });
-    }
-
-    gate.addEventListener('touchend', function (e) {
-      e.preventDefault();
-      unlockAudio();
-    }, { passive: false });
-    gate.addEventListener('click', unlockAudio);
-
-  } else {
-    // Desktop: try unmuting immediately — if browser allows it, done
-    // If not (first visit), show gate
+  function unlockAudio() {
+    gate.classList.remove('visible');
     video.muted = false;
-    if (video.muted) {
-      // Browser forced it back to muted — show gate
-      gate.classList.add('visible');
-      gate.addEventListener('click', function () {
-        gate.classList.remove('visible');
-        video.muted = false;
-        video.currentTime = 0;
-        video.play().catch(function () { goToLogin(); });
-      });
-    }
+    video.currentTime = 0;
+    video.play().catch(function () { goToLogin(); });
   }
+
+  gate.addEventListener('click', unlockAudio);
+  gate.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    unlockAudio();
+  }, { passive: false });
 })();
 </script>
 </body>
