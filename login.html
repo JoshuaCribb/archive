@@ -314,7 +314,11 @@
     errorMsg.textContent = '';
     pwInput.value = '';
     pwInput.classList.remove('error');
-    setTimeout(() => pwInput.focus(), 80);
+    // Longer delay for iOS PWA keyboard to settle
+    setTimeout(() => {
+      pwInput.focus();
+      pwInput.click();
+    }, 150);
   }
 
   function closeModal() {
@@ -360,6 +364,10 @@
   });
 
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  // Prevent touchstart on overlay background stealing focus from input on iOS
+  overlay.addEventListener('touchstart', e => {
+    if (e.target === overlay) e.preventDefault();
+  }, { passive: false });
 
   // Keyboard shortcut on main screen
   document.addEventListener('keydown', e => {
