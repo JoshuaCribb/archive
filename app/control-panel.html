@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Archive">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<script src="auth.js"></script>
+<title>CONTROL PANEL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --tr-green:        #8aff6a;
+    --tr-green-glow:   #c8ff9c;
+    --tr-green-dim:    #2a6a22;
+    --tr-bg-dark:      #140404;
+    --tr-bg-mid:       #4a0e0e;
+    --tr-bg-light:     #7a1a1a;
+    --ps-cross:    #4d7ec4;
+    --ps-circle:   #e84c5f;
+    --ps-square:   #d957a4;
+    --ps-triangle: #4ab9a0;
+    --ring-radius-x:   210px;
+    --ring-radius-y:   32px;
+    --bg-image: none;
+    --font-ui: 'Jersey 10', 'Pixelify Sans', 'Courier New', monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html,body{
+    height:100%;
+    background:#000;
+    color:var(--tr-green);
+    font-family: var(--font-ui);
+    overflow:hidden;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action: pan-y;
+  }
+
+  .stage{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;
+    background-color: var(--tr-bg-mid);
+    background-image:
+      radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%),
+      var(--bg-image),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><rect width='160' height='160' fill='%234a0e0e'/><g fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='%237a1a1a' stroke-width='1.4'><path d='M80 28 C 60 44, 60 60, 80 80 C 100 60, 100 44, 80 28 Z'/><path d='M80 132 C 60 116, 60 100, 80 80 C 100 100, 100 116, 80 132 Z'/><path d='M28 80 C 44 60, 60 60, 80 80 C 60 100, 44 100, 28 80 Z'/><path d='M132 80 C 116 60, 100 60, 80 80 C 100 100, 116 100, 132 80 Z'/></g><g stroke='%237a1a1a' stroke-width='1' opacity='0.85'><path d='M80 14 Q 70 28, 70 38 Q 80 30, 80 14 Z'/><path d='M80 14 Q 90 28, 90 38 Q 80 30, 80 14 Z'/><path d='M80 146 Q 70 132, 70 122 Q 80 130, 80 146 Z'/><path d='M80 146 Q 90 132, 90 122 Q 80 130, 80 146 Z'/><path d='M14 80 Q 28 70, 38 70 Q 30 80, 14 80 Z'/><path d='M14 80 Q 28 90, 38 90 Q 30 80, 14 80 Z'/><path d='M146 80 Q 132 70, 122 70 Q 130 80, 146 80 Z'/><path d='M146 80 Q 132 90, 122 90 Q 130 80, 146 80 Z'/></g><g stroke='%238a2020' stroke-width='1.2' opacity='0.8'><path d='M40 40 Q 56 48, 60 64 Q 48 60, 40 40 Z'/><path d='M120 40 Q 104 48, 100 64 Q 112 60, 120 40 Z'/><path d='M40 120 Q 56 112, 60 96 Q 48 100, 40 120 Z'/><path d='M120 120 Q 104 112, 100 96 Q 112 100, 120 120 Z'/></g><g fill='%237a1a1a' opacity='0.9'><circle cx='80' cy='80' r='4'/><circle cx='80' cy='80' r='9' fill='none' stroke='%237a1a1a' stroke-width='1'/><circle cx='40' cy='40' r='2'/><circle cx='120' cy='40' r='2'/><circle cx='40' cy='120' r='2'/><circle cx='120' cy='120' r='2'/></g><g fill='%23380808' opacity='0.7'><circle cx='0' cy='0' r='3'/><circle cx='160' cy='0' r='3'/><circle cx='0' cy='160' r='3'/><circle cx='160' cy='160' r='3'/><circle cx='80' cy='0' r='2'/><circle cx='80' cy='160' r='2'/><circle cx='0' cy='80' r='2'/><circle cx='160' cy='80' r='2'/></g></g></svg>");
+    background-size: auto, cover, 160px 160px;
+    background-repeat: no-repeat, no-repeat, repeat;
+    image-rendering: pixelated;
+  }
+
+  .stage::after{
+    content:"";
+    position:absolute;inset:0;
+    pointer-events:none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.22) 3px,
+      rgba(0,0,0,0) 4px
+    );
+    mix-blend-mode: multiply;
+    z-index: 10;
+  }
+
+  .title{
+    text-align:center;
+    padding: 20px 0 4px;
+    font-family: var(--font-ui);
+    font-size: clamp(28px, 8vw, 44px);
+    letter-spacing: 6px;
+    color: var(--tr-green);
+    text-shadow:
+      0 0 8px var(--tr-green),
+      0 0 18px rgba(138,255,106,0.5),
+      3px 3px 0 #000;
+    z-index: 5;
+    position: relative;
+  }
+
+  .ring-stage{
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 900px;
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  .ring{
+    position: relative;
+    width: 420px;
+    height: 240px;
+  }
+
+  .item{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 120px;
+    height: 120px;
+    margin-left: -60px;
+    margin-top: -60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      transform 320ms cubic-bezier(.4,.0,.2,1),
+      opacity 320ms ease,
+      filter 320ms ease;
+    will-change: transform, opacity;
+    cursor: pointer;
+  }
+
+  /* Smaller items on small screens */
+  @media (max-width: 480px) {
+    .item { width: 80px; height: 80px; margin-left: -40px; margin-top: -40px; }
+    :root { --ring-radius-x: 140px; --ring-radius-y: 22px; }
+    .ring { width: 300px; height: 180px; }
+  }
+
+  .item .glyph{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(2px 4px 0 rgba(0,0,0,0.7));
+  }
+  .item .glyph svg, .item .glyph img{
+    width: 100%; height: 100%;
+    object-fit: contain;
+    overflow: visible;
+  }
+
+  .item.is-active .glyph{
+    animation: idleSpin 4s linear infinite;
+  }
+  @keyframes idleSpin{
+    from{ transform: rotateY(0deg); }
+    to  { transform: rotateY(360deg); }
+  }
+
+  .item-label{
+    position: absolute;
+    left: 50%;
+    bottom: -36px;
+    transform: translateX(-50%);
+    font-family: var(--font-ui);
+    font-size: clamp(14px, 4vw, 22px);
+    letter-spacing: 3px;
+    color: var(--tr-green);
+    text-shadow: 0 0 5px var(--tr-green), 1px 1px 0 #000;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+  .item.is-active .item-label{ opacity: 1; }
+
+  /* ----- Bottom HUD ----- */
+  .hud{
+    position: relative;
+    z-index: 5;
+    padding: 10px 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: clamp(13px, 3.5vw, 22px);
+    letter-spacing: 3px;
+    color: var(--tr-green);
+    text-shadow: 0 0 5px var(--tr-green), 1px 1px 0 #000;
+  }
+
+  .hud .left  { justify-self: start;  display:flex; align-items:center; gap:6px; }
+  .hud .mid   { justify-self: center; text-align: center; display:flex; align-items:center; gap:6px; }
+  .hud .right { justify-self: end;    display:flex; align-items:center; gap:6px; }
+
+  /* Touch nav arrows shown on mobile */
+  .touch-nav {
+    display: none;
+    position: relative;
+    z-index: 5;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 0 0 6px;
+  }
+  @media (max-width: 700px) {
+    .touch-nav { display: flex; }
+    .hud .mid { display: none; }
+  }
+
+  .touch-arrow {
+    background: transparent;
+    border: 1.5px solid rgba(138,255,106,0.4);
+    border-radius: 4px;
+    color: var(--tr-green);
+    font-size: 28px;
+    width: 56px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-shadow: 0 0 6px var(--tr-green);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-arrow:active { background: rgba(138,255,106,0.1); }
+
+  .select-hint {
+    font-family: var(--font-ui);
+    font-size: clamp(12px, 3vw, 18px);
+    letter-spacing: 3px;
+    color: var(--tr-green);
+    text-shadow: 0 0 5px var(--tr-green), 1px 1px 0 #000;
+    animation: blinkArrow 1.4s steps(2) infinite;
+  }
+  @keyframes blinkArrow{
+    0%, 50%   { opacity: 1; }
+    50.01%,100%{ opacity: 0.35; }
+  }
+
+  .ps-btn{
+    width: clamp(20px, 5vw, 28px);
+    height: clamp(20px, 5vw, 28px);
+    display:inline-block;
+    flex-shrink: 0;
+  }
+
+  .arrows{
+    color: var(--tr-green);
+    text-shadow: 0 0 5px var(--tr-green);
+    font-size: clamp(13px, 3.5vw, 22px);
+    animation: blinkArrow 1.4s steps(2) infinite;
+  }
+
+  .ring-stage::before{
+    content:"";
+    position:absolute;
+    width: 200px; height: 200px;
+    border-radius:50%;
+    border: 1px dashed rgba(138,255,106,0.12);
+    pointer-events:none;
+    animation: ringPulse 3.5s ease-in-out infinite;
+  }
+  @media (max-width: 480px) {
+    .ring-stage::before { width: 140px; height: 140px; }
+  }
+  @keyframes ringPulse{
+    0%,100%{ transform: scale(1);   opacity: 0.55; }
+    50%    { transform: scale(1.08);opacity: 0.18; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <h1 class="title">CONTROL PANEL</h1>
+
+  <div class="ring-stage">
+    <div class="ring" id="ring"></div>
+  </div>
+
+  <!-- Touch navigation row (mobile only) -->
+  <div class="touch-nav">
+    <button class="touch-arrow" id="btn-left" aria-label="rotate left">◀</button>
+    <span class="select-hint">TAP TO SELECT</span>
+    <button class="touch-arrow" id="btn-right" aria-label="rotate right">▶</button>
+  </div>
+
+  <div class="hud">
+    <div class="left">
+      <svg class="ps-btn" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="#1a1a1a" stroke="#000" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="13" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+        <g stroke="#4d7ec4" stroke-width="3" stroke-linecap="round" fill="none">
+          <line x1="10" y1="10" x2="22" y2="22"/>
+          <line x1="22" y1="10" x2="10" y2="22"/>
+        </g>
+      </svg>
+      <span>SELECT</span>
+    </div>
+
+    <div class="mid">
+      <span class="arrows">▼</span>
+      <span>STATISTICS</span>
+      <span class="arrows">▼</span>
+    </div>
+
+    <div class="right">
+      <span>GO BACK</span>
+      <svg class="ps-btn" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="#1a1a1a" stroke="#000" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="13" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+        <polygon points="16,8 24,22 8,22" fill="none" stroke="#4ab9a0" stroke-width="2.6" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+</div>
+
+<script>
+Auth.require();
+const USE_REAL_BG = false;
+const REAL_BG_PATH = 'assets/tr1-wallpaper.png';
+
+const items = [
+  { name: "LIFESTYLE", href: "archive.html",      icon: "camera"     },
+  { name: "ABOUT",     href: "#about",            icon: "compass"    },
+  { name: "PROJECTS",  href: "#projects",         icon: "pistols"    },
+  { name: "BLOG",      href: "#blog",             icon: "shotgun"    },
+  { name: "MUSIC",     href: "#music",            icon: "uzis"       },
+  { name: "CONTACT",   href: "#contact",          icon: "medi-small" },
+  { name: "RESUME",    href: "#resume",           icon: "gold-key"   },
+  { name: "LINKS",     href: "#links",            icon: "scion"      },
+];
+
+if (USE_REAL_BG) {
+  document.documentElement.style.setProperty('--bg-image', `url('${REAL_BG_PATH}')`);
+}
+
+const ICONS = {
+  compass: `
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="cFace" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#fff"/>
+          <stop offset="70%" stop-color="#c8c8b8"/>
+          <stop offset="100%" stop-color="#6a6a5a"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="50" r="38" fill="#3a3a3a" stroke="#111" stroke-width="2"/>
+      <circle cx="50" cy="50" r="32" fill="url(#cFace)" stroke="#222" stroke-width="1"/>
+      <g stroke="#222" stroke-width="1.5" fill="none">
+        <line x1="50" y1="22" x2="50" y2="28"/>
+        <line x1="50" y1="72" x2="50" y2="78"/>
+        <line x1="22" y1="50" x2="28" y2="50"/>
+        <line x1="72" y1="50" x2="78" y2="50"/>
+      </g>
+      <polygon points="50,28 53,52 50,55 47,52" fill="#c22"/>
+      <polygon points="50,72 53,55 50,52 47,55" fill="#222"/>
+      <circle cx="50" cy="53" r="3" fill="#222"/>
+      <circle cx="50" cy="18" r="4" fill="#3a3a3a" stroke="#111" stroke-width="1.5"/>
+    </svg>`,
+  camera: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.5">
+        <!-- camera body -->
+        <rect x="12" y="32" width="76" height="46" rx="6" fill="#3a3a3a"/>
+        <!-- top bump / viewfinder notch -->
+        <rect x="34" y="24" width="20" height="10" rx="3" fill="#2a2a2a" stroke="#111" stroke-width="1.2"/>
+        <!-- lens outer ring -->
+        <circle cx="50" cy="55" r="18" fill="#222" stroke="#555" stroke-width="2"/>
+        <!-- lens mid ring -->
+        <circle cx="50" cy="55" r="13" fill="#1a1a1a" stroke="#444" stroke-width="1.5"/>
+        <!-- lens inner glass -->
+        <circle cx="50" cy="55" r="8" fill="#0d1a2a"/>
+        <!-- lens highlight -->
+        <circle cx="45" cy="50" r="3" fill="rgba(255,255,255,0.18)"/>
+        <!-- shutter button -->
+        <circle cx="76" cy="36" r="4" fill="#555" stroke="#333" stroke-width="1"/>
+        <!-- flash / detail light -->
+        <rect x="16" y="36" width="10" height="7" rx="2" fill="#b8a060" stroke="#8a6a30" stroke-width="1"/>
+      </g>
+    </svg>`,
+  pistols: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.2">
+        <g transform="translate(10,30) rotate(-8)">
+          <rect x="0" y="10" width="34" height="9" fill="#4a4a4a"/>
+          <rect x="26" y="6" width="10" height="16" fill="#3a3a3a"/>
+          <path d="M22,19 L22,30 L30,30 L30,19 Z" fill="#2a2a2a"/>
+          <rect x="0" y="10" width="6" height="3" fill="#222"/>
+        </g>
+        <g transform="translate(48,48) rotate(8)">
+          <rect x="0" y="10" width="34" height="9" fill="#4a4a4a"/>
+          <rect x="26" y="6" width="10" height="16" fill="#3a3a3a"/>
+          <path d="M22,19 L22,30 L30,30 L30,19 Z" fill="#2a2a2a"/>
+          <rect x="0" y="10" width="6" height="3" fill="#222"/>
+        </g>
+      </g>
+    </svg>`,
+  shotgun: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.2" transform="translate(4,40) rotate(-12)">
+        <rect x="0"  y="8"  width="60" height="8" fill="#5a5a5a"/>
+        <rect x="0"  y="6"  width="60" height="3" fill="#7a7a7a"/>
+        <rect x="58" y="4"  width="14" height="14" fill="#6a4a2a"/>
+        <path d="M72,8 L86,18 L80,22 L72,16 Z" fill="#6a4a2a" stroke="#3a2a1a"/>
+        <rect x="14" y="16" width="6" height="6" fill="#2a2a2a"/>
+        <rect x="2"  y="9"  width="4" height="2" fill="#222"/>
+      </g>
+    </svg>`,
+  magnums: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.2">
+        <g transform="translate(8,32) rotate(-6)">
+          <rect x="0" y="10" width="30" height="11" fill="#6a6a6a"/>
+          <circle cx="22" cy="15" r="6" fill="#3a3a3a"/>
+          <circle cx="22" cy="15" r="2" fill="#888"/>
+          <path d="M18,21 L18,34 L28,34 L28,21 Z" fill="#3a3a3a"/>
+          <rect x="0" y="10" width="6" height="3" fill="#222"/>
+        </g>
+        <g transform="translate(48,50) rotate(6)">
+          <rect x="0" y="10" width="30" height="11" fill="#6a6a6a"/>
+          <circle cx="22" cy="15" r="6" fill="#3a3a3a"/>
+          <circle cx="22" cy="15" r="2" fill="#888"/>
+          <path d="M18,21 L18,34 L28,34 L28,21 Z" fill="#3a3a3a"/>
+          <rect x="0" y="10" width="6" height="3" fill="#222"/>
+        </g>
+      </g>
+    </svg>`,
+  uzis: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.2">
+        <g transform="translate(12,32) rotate(-8)">
+          <rect x="0" y="6" width="24" height="8" fill="#3a3a3a"/>
+          <rect x="6" y="14" width="8" height="14" fill="#2a2a2a"/>
+          <path d="M14,14 L14,28 L22,28 L22,14 Z" fill="#3a3a3a"/>
+          <rect x="0" y="6" width="3" height="2" fill="#222"/>
+        </g>
+        <g transform="translate(50,52) rotate(8)">
+          <rect x="0" y="6" width="24" height="8" fill="#3a3a3a"/>
+          <rect x="6" y="14" width="8" height="14" fill="#2a2a2a"/>
+          <path d="M14,14 L14,28 L22,28 L22,14 Z" fill="#3a3a3a"/>
+          <rect x="0" y="6" width="3" height="2" fill="#222"/>
+        </g>
+      </g>
+    </svg>`,
+  "medi-small": `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.5">
+        <rect x="28" y="34" width="44" height="32" fill="#f0f0f0"/>
+        <rect x="28" y="34" width="44" height="6" fill="#cccccc"/>
+        <rect x="46" y="42" width="8" height="20" fill="#d22"/>
+        <rect x="36" y="48" width="28" height="8" fill="#d22"/>
+      </g>
+    </svg>`,
+  "medi-large": `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.5">
+        <rect x="18" y="26" width="64" height="44" fill="#f0f0f0"/>
+        <rect x="18" y="26" width="64" height="8" fill="#cccccc"/>
+        <rect x="44" y="38" width="12" height="28" fill="#d22"/>
+        <rect x="28" y="46" width="44" height="12" fill="#d22"/>
+        <rect x="22" y="30" width="56" height="2" fill="#888"/>
+      </g>
+    </svg>`,
+  "gold-key": `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#332200" stroke-width="1.2" transform="rotate(-25 50 50)">
+        <circle cx="28" cy="50" r="14" fill="#e6b84a"/>
+        <circle cx="28" cy="50" r="6"  fill="#1a0606"/>
+        <rect x="40" y="46" width="36" height="8" fill="#e6b84a"/>
+        <rect x="66" y="54" width="4"  height="8" fill="#e6b84a"/>
+        <rect x="58" y="54" width="4"  height="6" fill="#e6b84a"/>
+        <rect x="74" y="54" width="2"  height="6" fill="#e6b84a"/>
+        <path d="M22,42 L34,42" stroke="#fff3b8" stroke-width="1"/>
+      </g>
+    </svg>`,
+  "silver-key": `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#222" stroke-width="1.2" transform="rotate(-25 50 50)">
+        <circle cx="28" cy="50" r="14" fill="#b8b8c0"/>
+        <circle cx="28" cy="50" r="6"  fill="#1a0606"/>
+        <rect x="40" y="46" width="36" height="8" fill="#b8b8c0"/>
+        <rect x="66" y="54" width="4"  height="8" fill="#b8b8c0"/>
+        <rect x="58" y="54" width="4"  height="6" fill="#b8b8c0"/>
+        <path d="M22,42 L34,42" stroke="#fff" stroke-width="1"/>
+      </g>
+    </svg>`,
+  ammo: `
+    <svg viewBox="0 0 100 100">
+      <g stroke="#111" stroke-width="1.2">
+        <rect x="26" y="36" width="48" height="30" fill="#7a5a2a"/>
+        <rect x="26" y="36" width="48" height="6"  fill="#5a3a1a"/>
+        <rect x="30" y="46" width="40" height="3"  fill="#3a2a0a"/>
+        <rect x="30" y="52" width="40" height="3"  fill="#3a2a0a"/>
+        <rect x="30" y="58" width="40" height="3"  fill="#3a2a0a"/>
+      </g>
+    </svg>`,
+  scion: `
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="scionG" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#fff7c8"/>
+          <stop offset="60%" stop-color="#e6b84a"/>
+          <stop offset="100%" stop-color="#6a3a0a"/>
+        </radialGradient>
+      </defs>
+      <g stroke="#332200" stroke-width="1.2">
+        <polygon points="50,18 78,40 70,76 30,76 22,40" fill="url(#scionG)"/>
+        <polygon points="50,28 68,42 64,68 36,68 32,42" fill="#c8902a" opacity="0.55"/>
+        <circle cx="50" cy="50" r="6" fill="#fff7c8"/>
+        <path d="M50,18 L50,76 M22,40 L78,40 M30,76 L70,76" stroke="#6a3a0a" stroke-width="0.6" fill="none" opacity="0.7"/>
+      </g>
+    </svg>`,
+};
+
+const ring = document.getElementById('ring');
+let currentIndex = 0;
+
+items.forEach((it, i) => {
+  const el = document.createElement('div');
+  el.className = 'item';
+  el.dataset.idx = i;
+
+  let inner;
+  if (it.iconUrl) {
+    inner = `<img src="${it.iconUrl}" alt="${escapeHTML(it.name)}" />`;
+  } else {
+    inner = ICONS[it.icon] || ICONS.compass;
+  }
+
+  el.innerHTML =
+    `<div class="glyph">${inner}</div>` +
+    `<div class="item-label">${escapeHTML(it.name)}</div>`;
+
+  el.addEventListener('click', () => {
+    if (i === currentIndex) selectCurrent();
+    else rotateTo(i);
+  });
+  ring.appendChild(el);
+  it._el = el;
+});
+
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function layout(){
+  const n = items.length;
+  const rx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ring-radius-x'));
+  const ry = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ring-radius-y'));
+  items.forEach((it, i) => {
+    let rel = (i - currentIndex);
+    if (rel >  n/2) rel -= n;
+    if (rel < -n/2) rel += n;
+    const angle = (rel / n) * Math.PI * 2;
+    const x = Math.sin(angle) * rx;
+    const depth = (Math.cos(angle) + 1) / 2;
+    const y = (1 - depth) * ry;
+    const scale = 0.42 + depth * 0.82;
+    const opacity = 0.18 + depth * 0.82;
+    const blur = (1 - depth) * 1.2;
+    it._el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    it._el.style.opacity = opacity;
+    it._el.style.zIndex = Math.round(depth * 100);
+    it._el.style.filter = `blur(${blur.toFixed(2)}px)`;
+    it._el.classList.toggle('is-active', i === currentIndex);
+  });
+}
+
+function rotate(delta){
+  const n = items.length;
+  currentIndex = (currentIndex + delta + n) % n;
+  layout();
+  playTick();
+}
+
+function rotateTo(idx){
+  const n = items.length;
+  let diff = idx - currentIndex;
+  if (diff >  n/2) diff -= n;
+  if (diff < -n/2) diff += n;
+  currentIndex = (currentIndex + diff + n) % n;
+  layout();
+  playTick();
+}
+
+function selectCurrent(){
+  const it = items[currentIndex];
+  const el = it._el;
+  el.animate(
+    [
+      { filter: 'brightness(1)   drop-shadow(0 0 0 #8aff6a)' },
+      { filter: 'brightness(2.5) drop-shadow(0 0 18px #c8ff9c)' },
+      { filter: 'brightness(1)   drop-shadow(0 0 0 #8aff6a)' }
+    ],
+    { duration: 280, easing: 'ease-out' }
+  );
+  playSelect();
+  setTimeout(() => {
+    if (it.href && it.href !== '#') window.location.href = it.href;
+    else console.log('Selected:', it.name, '->', it.href);
+  }, 260);
+}
+
+let audioCtx = null;
+function ac(){
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  return audioCtx;
+}
+function blip(freq, dur, type='square', vol=0.05){
+  const a = ac(); if (!a) return;
+  const o = a.createOscillator();
+  const g = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = vol;
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  o.connect(g).connect(a.destination);
+  o.start();
+  o.stop(a.currentTime + dur);
+}
+function playTick(){   blip(420, 0.06, 'square', 0.04); }
+function playSelect(){ blip(660, 0.08, 'square', 0.06);
+                       setTimeout(()=>blip(880, 0.10, 'square', 0.06), 70); }
+
+/* ---- Keyboard ---- */
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft'  || k === 'a') { e.preventDefault(); rotate(-1); }
+  else if (k === 'arrowright' || k === 'd') { e.preventDefault(); rotate( 1); }
+  else if (k === 'enter' || k === 'x' || k === ' ') { e.preventDefault(); selectCurrent(); }
+});
+
+/* ---- Touch swipe ---- */
+let touchStartX = 0;
+let touchStartY = 0;
+window.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+window.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+    dx < 0 ? rotate(1) : rotate(-1);
+  }
+}, { passive: true });
+
+/* ---- On-screen arrow buttons ---- */
+document.getElementById('btn-left').addEventListener('click', () => rotate(-1));
+document.getElementById('btn-right').addEventListener('click', () => rotate(1));
+
+window.addEventListener('resize', layout);
+layout();
+</script>
+</body>
+</html>

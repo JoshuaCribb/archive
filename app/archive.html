@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Archive">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<script src="auth.js"></script>
+<title>archive.</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100dvh;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    font-family: 'DM Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid #222;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 50;
+  }
+
+  #logo { display: none; }
+  #tagline { display: none; }
+
+  #toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .tb-btn {
+    background: transparent;
+    border: 0.5px solid #333;
+    border-radius: 4px;
+    color: #888;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tb-btn:hover, .tb-btn:active { border-color: #888; color: #e8e0d0; }
+
+  #back-btn {
+    background: transparent;
+    border: 0.5px solid #2a1a1a;
+    border-radius: 4px;
+    color: #8aff6a;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 9px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-shadow: 0 0 6px rgba(138,255,106,0.5);
+    -webkit-tap-highlight-color: transparent;
+    text-decoration: none;
+  }
+  #back-btn:hover { border-color: #8aff6a; }
+
+  #url-bar {
+    display: none;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #0f0f0f;
+    border-bottom: 0.5px solid #1a1a1a;
+    align-items: center;
+  }
+  #url-bar.visible { display: flex; }
+
+  #url-input {
+    flex: 1;
+    min-width: 0;
+    background: #161616;
+    border: 0.5px solid #2a2a2a;
+    border-radius: 4px;
+    color: #e8e0d0;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #url-input:focus { border-color: #555; }
+  #url-input::placeholder { color: #444; }
+
+  #add-url-btn {
+    background: #e8e0d0;
+    border: none;
+    border-radius: 4px;
+    color: #0a0a0a;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 7px 12px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #drop-zone {
+    display: none;
+    margin: 12px 16px;
+    border: 1px dashed #2a2a2a;
+    border-radius: 6px;
+    padding: 24px;
+    text-align: center;
+    color: #444;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #drop-zone.visible { display: block; }
+  #drop-zone.drag-over { border-color: #888; color: #888; background: #111; }
+  #drop-zone i { font-size: 24px; display: block; margin-bottom: 8px; color: #333; }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3px;
+    padding: 3px;
+  }
+
+  @media (min-width: 600px) { #grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 900px) { #grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1200px) { #grid { grid-template-columns: repeat(5, 1fr); } }
+  @media (min-width: 1600px) { #grid { grid-template-columns: repeat(6, 1fr); } }
+
+  .grid-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+    background: #111;
+  }
+
+  .grid-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s;
+    opacity: 0;
+  }
+  .grid-item img.loaded { opacity: 1; }
+  .grid-item:hover img { transform: scale(1.04); }
+
+  .grid-item .del-btn {
+    position: absolute;
+    top: 5px; right: 5px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #ccc;
+    font-size: 14px;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Always show delete on touch devices */
+  @media (hover: none) { .grid-item .del-btn { opacity: 0.7; } }
+  .grid-item:hover .del-btn { opacity: 1; }
+
+  #empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #333;
+  }
+  #empty-state i { font-size: 48px; display: block; margin-bottom: 16px; }
+  #empty-state p { font-size: 12px; letter-spacing: 0.1em; line-height: 1.8; }
+
+  /* Lightbox */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.97);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #lightbox.open { display: flex; }
+
+  #lightbox-img {
+    max-width: 92vw;
+    max-height: 80dvh;
+    object-fit: contain;
+    border-radius: 2px;
+    transition: opacity 0.2s;
+  }
+
+  #lightbox-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 20px;
+    color: #555;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  .nav-arrow {
+    background: transparent;
+    border: 0.5px solid #333;
+    border-radius: 4px;
+    color: #888;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 18px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-arrow:hover, .nav-arrow:active { border-color: #888; color: #e8e0d0; }
+
+  #close-lb {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: transparent;
+    border: 0.5px solid #333;
+    border-radius: 4px;
+    color: #888;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #close-lb:hover { border-color: #888; color: #e8e0d0; }
+
+  #count-badge {
+    font-size: 10px;
+    color: #444;
+    letter-spacing: 0.08em;
+  }
+
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <a href="control-panel.html" id="back-btn"><i class="ti ti-arrow-left"></i> control panel</a>
+  <div id="toolbar">
+    <span id="count-badge">0 images</span>
+    <button class="tb-btn" id="url-toggle-btn"><i class="ti ti-link"></i> URL</button>
+    <button class="tb-btn" id="upload-toggle-btn"><i class="ti ti-upload"></i> upload</button>
+    <button class="tb-btn" id="shuffle-btn"><i class="ti ti-arrows-shuffle"></i> shuffle</button>
+  </div>
+</div>
+
+<div id="url-bar">
+  <input id="url-input" type="url" inputmode="url" placeholder="paste image URL…" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+  <button id="add-url-btn">add</button>
+</div>
+
+<div id="drop-zone">
+  <i class="ti ti-photo-up"></i>
+  drop images here, or tap to browse
+</div>
+<input type="file" id="file-input" accept="image/*" multiple>
+
+<div id="grid"></div>
+<div id="empty-state">
+  <i class="ti ti-stack-2"></i>
+  <p>your archive is empty.<br>add images via URL or upload to begin.</p>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="image viewer">
+  <button id="close-lb" aria-label="close"><i class="ti ti-x"></i></button>
+  <img id="lightbox-img" src="" alt="full size preview" />
+  <div id="lightbox-nav">
+    <button class="nav-arrow" id="prev-btn" aria-label="previous"><i class="ti ti-chevron-left"></i></button>
+    <span id="lb-counter">1 / 1</span>
+    <button class="nav-arrow" id="next-btn" aria-label="next"><i class="ti ti-chevron-right"></i></button>
+  </div>
+</div>
+
+<script>
+Auth.require();
+(async () => {
+  let images = [];
+  let lbIndex = 0;
+  let _lbImages = [];
+  const STORAGE_KEY = 'archive-images-v1';
+
+  const grid = document.getElementById('grid');
+  const emptyState = document.getElementById('empty-state');
+  const countBadge = document.getElementById('count-badge');
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  const lbCounter = document.getElementById('lb-counter');
+  const urlBar = document.getElementById('url-bar');
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const urlInput = document.getElementById('url-input');
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  async function loadFromStorage() {
+    try {
+      const result = await window.storage.get(STORAGE_KEY);
+      if (result && result.value) images = JSON.parse(result.value);
+    } catch(e) { images = []; }
+    renderGrid(true);
+  }
+
+  async function saveToStorage() {
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(
+        images.map(({ src, type, id }) => ({ src, type, id }))
+      ));
+    } catch(e) {}
+  }
+
+  function renderGrid(doShuffle = false) {
+    const display = doShuffle ? shuffle(images) : images;
+    grid.innerHTML = '';
+    emptyState.style.display = display.length ? 'none' : 'block';
+    countBadge.textContent = images.length + ' image' + (images.length !== 1 ? 's' : '');
+
+    display.forEach((img, idx) => {
+      const item = document.createElement('div');
+      item.className = 'grid-item';
+
+      const el = document.createElement('img');
+      el.alt = '';
+      el.onload = () => el.classList.add('loaded');
+      el.onerror = () => {};
+      el.src = img.src;
+
+      const del = document.createElement('button');
+      del.className = 'del-btn';
+      del.setAttribute('aria-label', 'remove');
+      del.innerHTML = '<i class="ti ti-x"></i>';
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        images = images.filter(i => i.id !== img.id);
+        saveToStorage();
+        renderGrid();
+      });
+
+      item.appendChild(el);
+      item.appendChild(del);
+      item.addEventListener('click', () => { lbIndex = idx; openLightbox(display); });
+      grid.appendChild(item);
+    });
+  }
+
+  function openLightbox(imgs) {
+    _lbImages = imgs;
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    showLbImage();
+    document.addEventListener('keydown', handleKey);
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleKey);
+  }
+
+  function showLbImage() {
+    lbImg.style.opacity = 0;
+    lbImg.src = _lbImages[lbIndex].src;
+    lbImg.onload = () => { lbImg.style.opacity = 1; };
+    lbCounter.textContent = (lbIndex + 1) + ' / ' + _lbImages.length;
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); }
+    if (e.key === 'ArrowLeft') { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); }
+  }
+
+  /* Touch swipe in lightbox */
+  let lbTouchX = 0;
+  lightbox.addEventListener('touchstart', e => { lbTouchX = e.changedTouches[0].clientX; }, { passive: true });
+  lightbox.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - lbTouchX;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0) { lbIndex = (lbIndex + 1) % _lbImages.length; }
+      else { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; }
+      showLbImage();
+    }
+  }, { passive: true });
+
+  document.getElementById('close-lb').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.getElementById('next-btn').addEventListener('click', () => { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); });
+  document.getElementById('prev-btn').addEventListener('click', () => { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); });
+
+  document.getElementById('shuffle-btn').addEventListener('click', () => renderGrid(true));
+
+  document.getElementById('url-toggle-btn').addEventListener('click', () => {
+    urlBar.classList.toggle('visible');
+    dropZone.classList.remove('visible');
+    if (urlBar.classList.contains('visible')) urlInput.focus();
+  });
+
+  document.getElementById('upload-toggle-btn').addEventListener('click', () => {
+    dropZone.classList.toggle('visible');
+    urlBar.classList.remove('visible');
+  });
+
+  document.getElementById('add-url-btn').addEventListener('click', addFromUrl);
+  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addFromUrl(); });
+
+  function addFromUrl() {
+    const url = urlInput.value.trim();
+    if (!url) return;
+    images.push({ src: url, type: 'url', id: Date.now() + Math.random() });
+    saveToStorage();
+    renderGrid();
+    urlInput.value = '';
+    urlBar.classList.remove('visible');
+  }
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+  function handleFiles(files) {
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        images.push({ src: ev.target.result, type: 'file', id: Date.now() + Math.random() });
+        saveToStorage();
+        renderGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+    dropZone.classList.remove('visible');
+  }
+
+  loadFromStorage();
+
+  /* PWA service worker registration */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

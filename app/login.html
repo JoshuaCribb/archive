@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Archive">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<title>SYSTEM</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Orbitron', 'Courier New', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── 4:3 container — smaller, never stretches the GIF ── */
+  #stage {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    /* Compact: max 70vh tall, max 92vw wide */
+    width: min(calc(70vh * 4 / 3), 92vw);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* GIF fills the 4:3 stage exactly */
+  #bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill; /* stage is already 4:3, so fill = no distortion */
+    display: block;
+    z-index: 0;
+  }
+
+  /* Slight vignette */
+  #vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.5) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ── Invisible clickable hotspots mapped to GIF UI ── */
+  /* All positions in % relative to the 4:3 stage, matching the screenshot */
+
+  .hotspot {
+    position: absolute;
+    z-index: 10;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    /* Uncomment next line to debug positions: */
+    /* background: rgba(255,0,0,0.25); */
+  }
+
+  /* "Browser" text — raised up a bit */
+  #hs-browser {
+    left: 54%;
+    top: 43%;
+    width: 33%;
+    height: 15%;
+    min-height: 44px;
+    border-radius: 4px;
+  }
+
+  /* "System Configuration" subtitle */
+  #hs-sysconfig {
+    left: 36%;
+    top: 61%;
+    width: 44%;
+    height: 9%;
+    min-height: 44px;
+    border-radius: 4px;
+  }
+
+  /* X Enter — bottom-left */
+  #hs-enter {
+    left: 4%;
+    top: 80%;
+    width: 24%;
+    height: 14%;
+    min-height: 44px;
+    border-radius: 4px;
+  }
+
+  /* △ Version — bottom-right */
+  #hs-version {
+    right: 4%;
+    top: 80%;
+    width: 24%;
+    height: 14%;
+    min-height: 44px;
+    border-radius: 4px;
+  }
+
+  /* ── Password modal ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+
+  #modal {
+    background: rgba(0,6,18,0.92);
+    border: 1px solid rgba(94,207,255,0.25);
+    border-radius: 8px;
+    padding: clamp(28px, 6vw, 48px) clamp(24px, 8vw, 56px);
+    width: min(340px, 90vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    box-shadow:
+      0 0 40px rgba(94,207,255,0.08),
+      inset 0 0 60px rgba(0,0,0,0.4);
+    animation: modalIn 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #modal-title {
+    font-size: clamp(13px, 3.5vw, 18px);
+    letter-spacing: 0.22em;
+    color: #5ecfff;
+    text-shadow: 0 0 12px rgba(94,207,255,0.6);
+    text-transform: uppercase;
+  }
+
+  #modal-subtitle {
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.16em;
+    color: rgba(160,180,200,0.55);
+    text-transform: uppercase;
+    margin-top: -12px;
+  }
+
+  #pw-input {
+    width: 100%;
+    background: rgba(0,10,24,0.8);
+    border: 1px solid rgba(94,207,255,0.2);
+    border-radius: 4px;
+    color: #5ecfff;
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; /* must be ≥16px to prevent iOS auto-zoom */
+    letter-spacing: 0.3em;
+    padding: 12px 14px;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: #5ecfff;
+    touch-action: manipulation;
+  }
+  #pw-input:focus {
+    border-color: rgba(94,207,255,0.6);
+    box-shadow: 0 0 0 2px rgba(94,207,255,0.08), 0 0 20px rgba(94,207,255,0.1);
+  }
+  #pw-input.error {
+    border-color: rgba(255,80,80,0.6);
+    animation: shake 0.35s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-8px); }
+    40%     { transform: translateX(8px); }
+    60%     { transform: translateX(-5px); }
+    80%     { transform: translateX(5px); }
+  }
+
+  #error-msg {
+    font-size: clamp(9px, 2.2vw, 11px);
+    letter-spacing: 0.14em;
+    color: rgba(255,100,100,0.8);
+    text-align: center;
+    min-height: 14px;
+    text-transform: uppercase;
+    margin-top: -12px;
+  }
+
+  #enter-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(94,207,255,0.35);
+    border-radius: 4px;
+    color: #5ecfff;
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(11px, 2.8vw, 14px);
+    letter-spacing: 0.22em;
+    padding: 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #enter-btn:hover, #enter-btn:active {
+    background: rgba(94,207,255,0.1);
+    border-color: rgba(94,207,255,0.7);
+    box-shadow: 0 0 20px rgba(94,207,255,0.15);
+  }
+
+  #cancel-btn {
+    font-size: clamp(9px, 2vw, 11px);
+    letter-spacing: 0.14em;
+    color: rgba(160,180,200,0.45);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    text-transform: uppercase;
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #cancel-btn:hover { color: rgba(160,180,200,0.8); }
+
+  /* Already logged in flash */
+  #already-in {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.85);
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(14px, 4vw, 20px);
+    letter-spacing: 0.2em;
+    color: #5ecfff;
+    text-shadow: 0 0 20px rgba(94,207,255,0.8);
+    text-transform: uppercase;
+  }
+  #already-in.show { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- 4:3 stage — GIF is never stretched -->
+<div id="stage">
+  <img id="bg" src="ps2-xmb.gif" alt="" aria-hidden="true">
+  <div id="vignette"></div>
+
+  <!-- Invisible hotspots over the GIF's actual buttons -->
+  <div id="hs-browser"   class="hotspot" role="button" aria-label="Browser — log in" tabindex="0"></div>
+  <div id="hs-sysconfig" class="hotspot" role="button" aria-label="System Configuration" tabindex="0"></div>
+  <div id="hs-enter"     class="hotspot" role="button" aria-label="Enter" tabindex="0"></div>
+  <div id="hs-version"   class="hotspot" aria-label="Version" tabindex="-1"></div>
+</div>
+
+<!-- Password modal (fixed, outside stage) -->
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-label="Login">
+  <div id="modal">
+    <div id="modal-title">Access Required</div>
+    <div id="modal-subtitle">Enter system password</div>
+    <input
+      id="pw-input"
+      type="password"
+      autocomplete="current-password"
+      autocorrect="off"
+      autocapitalize="none"
+      spellcheck="false"
+      placeholder="••••••••"
+      maxlength="64"
+      aria-label="Password"
+    />
+    <div id="error-msg"></div>
+    <button id="enter-btn">Enter</button>
+    <button id="cancel-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- Already-logged-in flash -->
+<div id="already-in">SESSION ACTIVE — REDIRECTING</div>
+
+<script src="auth.js"></script>
+<script>
+(function() {
+  // If already logged in, skip straight to control panel
+  if (Auth.isLoggedIn()) {
+    const flash = document.getElementById('already-in');
+    flash.classList.add('show');
+    setTimeout(() => { window.location.replace('control-panel.html'); }, 900);
+    return;
+  }
+
+  const overlay   = document.getElementById('modal-overlay');
+  const pwInput   = document.getElementById('pw-input');
+  const errorMsg  = document.getElementById('error-msg');
+  const enterBtn  = document.getElementById('enter-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+
+  function openModal() {
+    overlay.classList.add('open');
+    errorMsg.textContent = '';
+    pwInput.value = '';
+    pwInput.classList.remove('error');
+    setTimeout(() => pwInput.focus(), 80);
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    pwInput.value = '';
+    errorMsg.textContent = '';
+    pwInput.classList.remove('error');
+  }
+
+  function attempt() {
+    const pw = pwInput.value;
+    if (Auth.login(pw)) {
+      closeModal();
+      const flash = document.getElementById('already-in');
+      flash.textContent = 'ACCESS GRANTED';
+      flash.classList.add('show');
+      setTimeout(() => { window.location.replace('control-panel.html'); }, 700);
+    } else {
+      pwInput.classList.remove('error');
+      void pwInput.offsetWidth;
+      pwInput.classList.add('error');
+      errorMsg.textContent = 'Incorrect password';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+  }
+
+  // Wire up hotspots
+  ['hs-browser', 'hs-sysconfig', 'hs-enter'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('click', openModal);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); }
+    });
+  });
+
+  enterBtn.addEventListener('click', attempt);
+  cancelBtn.addEventListener('click', closeModal);
+
+  pwInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') attempt();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  // Keyboard shortcut on main screen
+  document.addEventListener('keydown', e => {
+    if (!overlay.classList.contains('open') && (e.key === 'Enter' || e.key === 'x' || e.key === 'X')) {
+      openModal();
+    }
+  });
+})();
+</script>
+</body>
+</html>
