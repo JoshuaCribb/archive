@@ -85,13 +85,14 @@
   id="intro-video"
   src="intro.mp4"
   playsinline
+  webkit-playsinline
   disablepictureinpicture
   disableremoteplayback
   preload="auto"
 ></video>
 
 <div id="gate">
-  <span id="gate-label">tap to enter</span>
+  <span id="gate-label">begin</span>
 </div>
 
 <div id="fade"></div>
@@ -122,7 +123,7 @@
   }
 
   gate.addEventListener('click', dismissGateAndPlay);
-  gate.addEventListener('touchstart', function (e) {
+  gate.addEventListener('touchend', function (e) {
     e.preventDefault();
     dismissGateAndPlay();
   }, { passive: false });
@@ -132,15 +133,26 @@
   if (isMobile) {
     // Mobile: always show the gate — browsers require a gesture for audio
     gate.classList.add('visible');
+    // Also ensure video is ready before play() is called after tap
+    video.addEventListener('loadedmetadata', function () {
+      video.load();
+    }, { once: true });
   } else {
     // Desktop: try autoplay with audio; only show gate if it fails
-    var playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(function () {
-        gate.classList.add('visible');
-      });
+    var played = false;
+    function tryPlay() {
+      if (played) return;
+      played = true;
+      var playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function () {
+          gate.classList.add('visible');
+        });
+      }
     }
-    // If play() returns undefined (very old browsers) just let it try silently
+    video.addEventListener('loadedmetadata', tryPlay, { once: true });
+    video.addEventListener('canplay', tryPlay, { once: true });
+    tryPlay();
   }
 })();
 </script>
