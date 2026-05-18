@@ -23,7 +23,6 @@
   }
 
   #intro-video {
-    /* Natural size, never stretched — black bars fill the rest */
     max-width: 100vw;
     max-height: 100dvh;
     width: auto;
@@ -35,6 +34,40 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* Tap-to-enter overlay — shown only when autoplay+audio is blocked */
+  #gate {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    cursor: pointer;
+    /* hidden by default; JS shows it only when needed */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #gate.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #gate-label {
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(10px, 2.5vw, 13px);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    /* subtle pulse so the user knows to tap */
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50%       { opacity: 0.7; }
   }
 
   /* Smooth fade-to-black before redirect */
@@ -55,18 +88,23 @@
 <video
   id="intro-video"
   src="intro.mp4"
-  autoplay
   playsinline
   disablepictureinpicture
   disableremoteplayback
   preload="auto"
 ></video>
 
+<!-- shown only when the browser blocks autoplay with audio -->
+<div id="gate">
+  <span id="gate-label">WELCOME</span>
+</div>
+
 <div id="fade"></div>
 
 <script>
 (function () {
   const video = document.getElementById('intro-video');
+  const gate  = document.getElementById('gate');
   const fade  = document.getElementById('fade');
 
   function goToLogin() {
@@ -76,23 +114,35 @@
     }, 500);
   }
 
-  // Normal path: video finishes → go to login
   video.addEventListener('ended', goToLogin);
-
-  // If video fails to load/play, don't get stuck — go to login anyway
   video.addEventListener('error', goToLogin);
 
-  // iOS sometimes needs a user gesture to start — if autoplay is blocked,
-  // a tap anywhere will start it
-  document.addEventListener('touchstart', function startOnTap() {
-    video.play().catch(function () {});
-    document.removeEventListener('touchstart', startOnTap);
-  }, { once: true, passive: true });
+  function dismissGateAndPlay() {
+    gate.classList.remove('visible');
+    video.play().catch(function () { goToLogin(); });
+  }
 
-  // Force play on load in case autoplay didn't fire
-  video.addEventListener('canplay', function () {
-    video.play().catch(function () {});
-  }, { once: true });
+  gate.addEventListener('click',     dismissGateAndPlay);
+  gate.addEventListener('touchstart', function (e) {
+    e.preventDefault();          // prevent ghost click
+    dismissGateAndPlay();
+  }, { passive: false });
+
+  // Try autoplay WITH audio first.
+  // Browsers that allow it (desktop after prior interaction, some Android)
+  // will just play. Browsers that block it will reject the promise → show gate.
+  video.muted = false;
+  var playPromise = video.play();
+
+  if (playPromise !== undefined) {
+    playPromise.catch(function () {
+      // Autoplay with audio blocked — show the tap gate
+      gate.classList.add('visible');
+    });
+  } else {
+    // Older browsers: can't detect block, show gate to be safe
+    gate.classList.add('visible');
+  }
 })();
 </script>
 </body>
