@@ -103,7 +103,6 @@
   var gate  = document.getElementById('gate');
   var fade  = document.getElementById('fade');
 
-  // True for any touch-primary device (iOS, Android, etc.)
   var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
               || (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform));
 
@@ -117,42 +116,42 @@
   video.addEventListener('ended', goToLogin);
   video.addEventListener('error', goToLogin);
 
-  function dismissGateAndPlay() {
-    gate.classList.remove('visible');
-    video.play().catch(function () { goToLogin(); });
-  }
-
-  gate.addEventListener('click', dismissGateAndPlay);
-  gate.addEventListener('touchend', function (e) {
-    e.preventDefault();
-    dismissGateAndPlay();
-  }, { passive: false });
-
-  video.muted = false;
+  // Step 1: start muted (always works, no gesture needed)
+  video.muted = true;
+  video.play().catch(function () {});
 
   if (isMobile) {
-    // Mobile: always show the gate — browsers require a gesture for audio
+    // Step 2 (mobile): show gate, on tap unmute and seek back to 0
+    // The gesture unlocks audio BEFORE we unmute — this is the key difference
     gate.classList.add('visible');
-    // Also ensure video is ready before play() is called after tap
-    video.addEventListener('loadedmetadata', function () {
-      video.load();
-    }, { once: true });
-  } else {
-    // Desktop: try autoplay with audio; only show gate if it fails
-    var played = false;
-    function tryPlay() {
-      if (played) return;
-      played = true;
-      var playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(function () {
-          gate.classList.add('visible');
-        });
-      }
+
+    function unlockAudio() {
+      gate.classList.remove('visible');
+      video.muted = false;
+      video.currentTime = 0;
+      video.play().catch(function () { goToLogin(); });
     }
-    video.addEventListener('loadedmetadata', tryPlay, { once: true });
-    video.addEventListener('canplay', tryPlay, { once: true });
-    tryPlay();
+
+    gate.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      unlockAudio();
+    }, { passive: false });
+    gate.addEventListener('click', unlockAudio);
+
+  } else {
+    // Desktop: try unmuting immediately — if browser allows it, done
+    // If not (first visit), show gate
+    video.muted = false;
+    if (video.muted) {
+      // Browser forced it back to muted — show gate
+      gate.classList.add('visible');
+      gate.addEventListener('click', function () {
+        gate.classList.remove('visible');
+        video.muted = false;
+        video.currentTime = 0;
+        video.play().catch(function () { goToLogin(); });
+      });
+    }
   }
 })();
 </script>
