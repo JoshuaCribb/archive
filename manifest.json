@@ -1,7 +1,7 @@
 {
-  "name": "ControlPanel",
-  "short_name": "ControlPanel",
-  "description": "Your personal Pinterest-style image board with a Tomb Raider inventory launcher.",
+  "name": "archive",
+  "short_name": "archive",
+  "description": "archive",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",

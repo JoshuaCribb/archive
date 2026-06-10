@@ -57,8 +57,6 @@
     z-index: 50;
   }
 
- 
-
   #wordmark {
     position: absolute;
     left: 50%;
@@ -77,13 +75,15 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    margin-left: auto;
   }
 
-  /* Glass pill buttons — clearly visible */
+  /* Glass pill buttons */
   .tb-btn {
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -99,6 +99,8 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     white-space: nowrap;
+    min-height: 44px;
+    min-width: 44px;
   }
   .tb-btn i { font-size: 14px; }
   .tb-btn:hover {
@@ -148,8 +150,16 @@
   #topbar-divider {
     width: 1px; height: 20px;
     background: var(--glass-border);
-    margin: 0 4px;
+    margin: 0 2px;
     flex-shrink: 0;
+  }
+
+  /* Mobile: hide text labels, keep icons only */
+  @media (max-width: 480px) {
+    #topbar { padding: 0 12px; }
+    .tb-label { display: none; }
+    .tb-btn { padding: 7px 10px; }
+    #count-badge { display: none; }
   }
 
   /* ── Input drawer ── */
@@ -185,11 +195,14 @@
     position: relative;
     transition: color 0.15s;
     -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
   .drawer-tab::after {
     content: '';
     position: absolute;
-    bottom: -2px; left: 0; right: 0;
+    bottom: 6px; left: 0; right: 0;
     height: 1px;
     background: var(--text);
     transform: scaleX(0);
@@ -218,6 +231,7 @@
     padding: 9px 13px;
     outline: none;
     transition: border-color 0.15s, background 0.15s;
+    min-height: 44px;
   }
   #url-input:focus {
     border-color: var(--glass-border-hover);
@@ -240,6 +254,7 @@
     flex-shrink: 0;
     transition: opacity 0.15s;
     touch-action: manipulation;
+    min-height: 44px;
   }
   #add-url-btn:hover { opacity: 0.82; }
 
@@ -296,7 +311,7 @@
   .grid-item img.loaded { opacity: 1; }
   .grid-item:hover img { transform: scale(1.05); }
 
-  /* Glass delete button — always slightly visible on touch */
+  /* Glass delete button */
   .del-btn {
     position: absolute;
     top: 8px; right: 8px;
@@ -305,7 +320,7 @@
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 50%;
-    width: 30px; height: 30px;
+    width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     opacity: 0;
@@ -398,7 +413,7 @@
     border-radius: 50%;
     color: var(--text-mid);
     font-size: 16px;
-    width: 36px; height: 36px;
+    width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -453,13 +468,12 @@
     flex-shrink: 0;
   }
 
-  /* Bigger, glassier nav arrows */
   .nav-arrow {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 50%;
     color: var(--text-mid);
-    width: 48px; height: 48px;
+    width: 52px; height: 52px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.15s;
@@ -507,7 +521,7 @@
 </head>
 <body>
 
-
+<div id="topbar">
   <div id="wordmark">Archive</div>
 
   <div id="toolbar">
@@ -517,10 +531,10 @@
     </div>
     <div id="topbar-divider"></div>
     <button class="tb-btn" id="url-toggle-btn" aria-label="Add by URL">
-      <i class="ti ti-link"></i> URL
+      <i class="ti ti-link"></i><span class="tb-label"> URL</span>
     </button>
     <button class="tb-btn" id="upload-toggle-btn" aria-label="Upload">
-      <i class="ti ti-upload"></i> Upload
+      <i class="ti ti-upload"></i><span class="tb-label"> Upload</span>
     </button>
     <button class="tb-btn" id="shuffle-btn" aria-label="Shuffle">
       <i class="ti ti-arrows-shuffle"></i>
