@@ -337,10 +337,7 @@
   #lightbox {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 80px;
+    inset: 0;
     background: rgba(3,3,5,0.96);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
@@ -413,20 +410,33 @@
 
   #lb-stage {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
     touch-action: none;
     position: relative;
   }
 
+  #lb-strip {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    will-change: transform;
+  }
+
+  .lb-slide {
+    flex-shrink: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
   #lightbox-img {
-    max-width: 90vw;
-    max-height: 100%;
+    max-width: 90%;
+    max-height: 90%;
     object-fit: contain;
-    transition: opacity 0.2s;
-    transform-origin: 0 0;
+    transform-origin: center center;
     touch-action: none;
     will-change: transform;
     user-select: none;
@@ -591,7 +601,11 @@
     </div>
   </div>
   <div id="lb-stage">
-    <img id="lightbox-img" src="" alt="Full size preview" />
+    <div id="lb-strip">
+      <div class="lb-slide">
+        <img id="lightbox-img" src="" alt="Full size preview" />
+      </div>
+    </div>
     <span id="swipe-hint">Swipe to navigate</span>
   </div>
   <div id="lb-footer">
@@ -772,13 +786,15 @@ async function dbDelete(id) {
     document.removeEventListener('keydown', handleKey);
     resetZoom();
     resetDeleteConfirm();
+    lbStrip.style.transition = 'none';
+    lbStrip.style.transform  = 'translateX(0px)';
   }
 
   function showLbImage() {
     resetZoom();
-    lbImg.style.opacity = 0;
+    lbStrip.style.transition = 'none';
+    lbStrip.style.transform  = 'translateX(0px)';
     lbImg.src = _lbImages[lbIndex].src;
-    lbImg.onload = () => lbImg.style.opacity = 1;
     lbCounter.textContent = `${lbIndex + 1} / ${_lbImages.length}`;
     resetDeleteConfirm();
   }
@@ -810,53 +826,80 @@ async function dbDelete(id) {
 
   function handleKey(e) {
     if (e.key === 'Escape')     closeLightbox();
-    if (e.key === 'ArrowRight') { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); }
-    if (e.key === 'ArrowLeft')  { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); }
+    if (e.key === 'ArrowRight') slideToIndex((lbIndex + 1) % _lbImages.length, -1);
+    if (e.key === 'ArrowLeft')  slideToIndex((lbIndex - 1 + _lbImages.length) % _lbImages.length, 1);
   }
 
   document.getElementById('lb-close-btn').addEventListener('click', closeLightbox);
-  document.getElementById('next-btn').addEventListener('click', () => { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); });
-  document.getElementById('prev-btn').addEventListener('click', () => { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); });
+  document.getElementById('next-btn').addEventListener('click', () => slideToIndex((lbIndex + 1) % _lbImages.length, -1));
+  document.getElementById('prev-btn').addEventListener('click', () => slideToIndex((lbIndex - 1 + _lbImages.length) % _lbImages.length, 1));
 
   // Zoom & pan
   const lbStage = document.getElementById('lb-stage');
+  const lbStrip = document.getElementById('lb-strip');
   const MIN_SCALE = 1, MAX_SCALE = 6;
   let scale = 1, tx = 0, ty = 0;
   const activePointers = new Map();
   let pinchStartDist = 0, pinchStartScale = 1, pinchMid = {x:0,y:0};
   let panLastX = 0, panLastY = 0, panMoved = false;
-  let swipeStartX = 0, swipeStartY = 0, swipeActive = false;
+  let swipeStartX = 0, swipeStartY = 0, swipeActive = false, swipeDragX = 0;
 
-  function applyTransform() {
+  function applyTransform(animated) {
+    lbImg.style.transition = animated ? 'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
     lbImg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
     lbImg.classList.toggle('zoomed', scale > 1.001);
   }
   function resetZoom() {
     scale = 1; tx = 0; ty = 0;
-    applyTransform();
+    applyTransform(false);
     lbImg.classList.remove('panning');
   }
   function clampPan() {
     if (scale <= 1.001) { tx = 0; ty = 0; return; }
-    const rect = lbImg.getBoundingClientRect();
-    const sr   = lbStage.getBoundingClientRect();
-    const mx = Math.max(0, (rect.width  - sr.width)  / 2 + 60);
-    const my = Math.max(0, (rect.height - sr.height) / 2 + 60);
+    const sr = lbStage.getBoundingClientRect();
+    const visW = sr.width, visH = sr.height;
+    const imgNatW = lbImg.naturalWidth  || lbImg.offsetWidth;
+    const imgNatH = lbImg.naturalHeight || lbImg.offsetHeight;
+    const ratio = Math.min(visW * 0.9 / imgNatW, visH * 0.9 / imgNatH);
+    const rendW = imgNatW * ratio;
+    const rendH = imgNatH * ratio;
+    const scaledW = rendW * scale;
+    const scaledH = rendH * scale;
+    const mx = Math.max(0, (scaledW - visW) / 2);
+    const my = Math.max(0, (scaledH - visH) / 2);
     tx = Math.max(-mx, Math.min(mx, tx));
     ty = Math.max(-my, Math.min(my, ty));
   }
   function zoomAt(cx, cy, ns) {
     ns = Math.max(MIN_SCALE, Math.min(MAX_SCALE, ns));
-    const rect = lbImg.getBoundingClientRect();
-    const ox = cx - (rect.left + rect.width  / 2);
-    const oy = cy - (rect.top  + rect.height / 2);
-    const r  = ns / scale;
-    tx = (tx - ox) * r + ox;
-    ty = (ty - oy) * r + oy;
+    const sr   = lbStage.getBoundingClientRect();
+    const cx2  = cx - (sr.left + sr.width  / 2);
+    const cy2  = cy - (sr.top  + sr.height / 2);
+    const r    = ns / scale;
+    tx = (tx - cx2) * r + cx2;
+    ty = (ty - cy2) * r + cy2;
     scale = ns;
     if (scale <= 1.001) { scale = 1; tx = 0; ty = 0; }
     clampPan();
-    applyTransform();
+    applyTransform(false);
+  }
+
+  function slideToIndex(newIndex, dir) {
+    const sw = lbStage.getBoundingClientRect().width;
+    lbStrip.style.transition = 'none';
+    lbStrip.style.transform  = `translateX(0px)`;
+    lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+    lbStrip.style.transform  = `translateX(${dir < 0 ? -sw : sw}px)`;
+    lbIndex = newIndex;
+    setTimeout(() => {
+      lbStrip.style.transition = 'none';
+      lbStrip.style.transform  = `translateX(${dir < 0 ? sw : -sw}px)`;
+      showLbImage();
+      requestAnimationFrame(() => {
+        lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+        lbStrip.style.transform  = 'translateX(0px)';
+      });
+    }, 320);
   }
 
   lbStage.addEventListener('wheel', e => {
@@ -874,16 +917,17 @@ async function dbDelete(id) {
     lastTap = now;
   });
 
-  lbImg.addEventListener('pointerdown', e => {
+  lbStage.addEventListener('pointerdown', e => {
     if (e.button && e.button !== 0) return;
-    lbImg.setPointerCapture(e.pointerId);
+    lbStage.setPointerCapture(e.pointerId);
     activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    panMoved = false;
+    panMoved = false; swipeDragX = 0;
     if (activePointers.size === 2) {
       const pts = Array.from(activePointers.values());
       pinchStartDist  = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) || 1;
       pinchStartScale = scale;
       pinchMid = {x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2};
+      swipeActive = false;
     } else if (activePointers.size === 1) {
       panLastX = e.clientX; panLastY = e.clientY;
       swipeStartX = e.clientX; swipeStartY = e.clientY;
@@ -892,7 +936,7 @@ async function dbDelete(id) {
     }
   });
 
-  lbImg.addEventListener('pointermove', e => {
+  lbStage.addEventListener('pointermove', e => {
     if (!activePointers.has(e.pointerId)) return;
     activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if (activePointers.size === 2) {
@@ -905,11 +949,16 @@ async function dbDelete(id) {
       if (scale > 1.001) {
         tx += dx; ty += dy;
         if (Math.abs(dx) + Math.abs(dy) > 2) panMoved = true;
-        clampPan(); applyTransform(); swipeActive = false;
+        clampPan(); applyTransform(false); swipeActive = false;
       } else {
         const adx = Math.abs(e.clientX - swipeStartX), ady = Math.abs(e.clientY - swipeStartY);
         if (adx > 6 || ady > 6) panMoved = true;
         if (ady > adx + 10) swipeActive = false;
+        if (swipeActive) {
+          swipeDragX = e.clientX - swipeStartX;
+          lbStrip.style.transition = 'none';
+          lbStrip.style.transform  = `translateX(${swipeDragX}px)`;
+        }
       }
     }
   });
@@ -917,19 +966,38 @@ async function dbDelete(id) {
   function endPointer(e) {
     if (!activePointers.has(e.pointerId)) return;
     if (swipeActive && activePointers.size === 1 && scale <= 1.001) {
-      const dx = e.clientX - swipeStartX, ady = Math.abs(e.clientY - swipeStartY);
+      const dx  = e.clientX - swipeStartX;
+      const ady = Math.abs(e.clientY - swipeStartY);
+      const sw  = lbStage.getBoundingClientRect().width;
       if (Math.abs(dx) > 50 && Math.abs(dx) > ady * 1.2) {
-        lbIndex = dx < 0 ? (lbIndex+1) % _lbImages.length : (lbIndex-1+_lbImages.length) % _lbImages.length;
-        showLbImage();
+        const dir = dx < 0 ? -1 : 1;
+        const ni  = dx < 0
+          ? (lbIndex + 1) % _lbImages.length
+          : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
+        lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+        lbStrip.style.transform  = `translateX(${dir > 0 ? sw : -sw}px)`;
+        lbIndex = ni;
+        setTimeout(() => {
+          lbStrip.style.transition = 'none';
+          lbStrip.style.transform  = `translateX(${dir > 0 ? -sw : sw}px)`;
+          showLbImage();
+          requestAnimationFrame(() => {
+            lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+            lbStrip.style.transform  = 'translateX(0px)';
+          });
+        }, 320);
+      } else {
+        lbStrip.style.transition = 'transform 0.22s cubic-bezier(0.4,0,0.2,1)';
+        lbStrip.style.transform  = 'translateX(0px)';
       }
     }
     activePointers.delete(e.pointerId);
     lbImg.classList.remove('panning');
-    swipeActive = false;
+    swipeActive = false; swipeDragX = 0;
   }
-  lbImg.addEventListener('pointerup',     endPointer);
-  lbImg.addEventListener('pointercancel', endPointer);
-  lbImg.addEventListener('pointerleave',  endPointer);
+  lbStage.addEventListener('pointerup',     endPointer);
+  lbStage.addEventListener('pointercancel', endPointer);
+  lbStage.addEventListener('pointerleave',  endPointer);
 
   // URL add
   document.getElementById('add-url-btn').addEventListener('click', addFromUrl);
