@@ -384,7 +384,6 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     white-space: nowrap;
-    justify-self: center;
   }
   #lb-delete-btn:hover { color: rgba(255,80,80,1); background: rgba(255,60,60,0.1); }
   #lb-delete-btn.confirm { color: rgba(255,80,80,1); }
@@ -416,20 +415,17 @@
   }
 
   #lb-strip {
-    display: flex;
     width: 100%;
     height: 100%;
-    will-change: transform;
+    position: relative;
   }
 
   .lb-slide {
-    flex-shrink: 0;
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
   }
 
   #lightbox-img {
@@ -453,36 +449,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 0 16px;
-    height: 72px;
+    height: 56px;
     background: rgba(6,6,8,0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-top: 1px solid var(--glass-border);
     flex-shrink: 0;
   }
-
-  .nav-arrow {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 50%;
-    color: var(--text-mid);
-    width: 52px; height: 52px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.15s;
-    font-size: 18px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .nav-arrow:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-hover);
-    color: var(--text);
-    transform: scale(1.06);
-  }
-  .nav-arrow:active { transform: scale(0.96); }
 
   #swipe-hint {
     position: absolute;
@@ -593,7 +566,7 @@
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
   <div id="lb-header">
     <span id="lb-counter">1 / 1</span>
-    <button id="lb-delete-btn" aria-label="Delete image">Remove</button>
+    <div></div>
     <div style="display:flex;justify-content:flex-end;">
       <button class="lb-btn" id="lb-close-btn" aria-label="Close">
         <i class="ti ti-x"></i>
@@ -609,12 +582,7 @@
     <span id="swipe-hint">Swipe to navigate</span>
   </div>
   <div id="lb-footer">
-    <button class="nav-arrow" id="prev-btn" aria-label="Previous">
-      <i class="ti ti-chevron-left"></i>
-    </button>
-    <button class="nav-arrow" id="next-btn" aria-label="Next">
-      <i class="ti ti-chevron-right"></i>
-    </button>
+    <button id="lb-delete-btn" aria-label="Delete image">Remove</button>
   </div>
 </div>
 
@@ -786,14 +754,10 @@ async function dbDelete(id) {
     document.removeEventListener('keydown', handleKey);
     resetZoom();
     resetDeleteConfirm();
-    lbStrip.style.transition = 'none';
-    lbStrip.style.transform  = 'translateX(0px)';
   }
 
   function showLbImage() {
     resetZoom();
-    lbStrip.style.transition = 'none';
-    lbStrip.style.transform  = 'translateX(0px)';
     lbImg.src = _lbImages[lbIndex].src;
     lbCounter.textContent = `${lbIndex + 1} / ${_lbImages.length}`;
     resetDeleteConfirm();
@@ -831,12 +795,9 @@ async function dbDelete(id) {
   }
 
   document.getElementById('lb-close-btn').addEventListener('click', closeLightbox);
-  document.getElementById('next-btn').addEventListener('click', () => slideToIndex((lbIndex + 1) % _lbImages.length, -1));
-  document.getElementById('prev-btn').addEventListener('click', () => slideToIndex((lbIndex - 1 + _lbImages.length) % _lbImages.length, 1));
 
   // Zoom & pan
   const lbStage = document.getElementById('lb-stage');
-  const lbStrip = document.getElementById('lb-strip');
   const MIN_SCALE = 1, MAX_SCALE = 6;
   let scale = 1, tx = 0, ty = 0;
   const activePointers = new Map();
@@ -884,22 +845,42 @@ async function dbDelete(id) {
     applyTransform(false);
   }
 
+
   function slideToIndex(newIndex, dir) {
+    // dir: -1 = going forward (swipe left), +1 = going back (swipe right)
+    // current slides out to the left (-1) or right (+1)
+    // new image comes in from the right (+1 dir means new from left, -1 means new from right)
+    if (newIndex === lbIndex) return;
     const sw = lbStage.getBoundingClientRect().width;
-    lbStrip.style.transition = 'none';
-    lbStrip.style.transform  = `translateX(0px)`;
-    lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
-    lbStrip.style.transform  = `translateX(${dir < 0 ? -sw : sw}px)`;
-    lbIndex = newIndex;
-    setTimeout(() => {
-      lbStrip.style.transition = 'none';
-      lbStrip.style.transform  = `translateX(${dir < 0 ? sw : -sw}px)`;
-      showLbImage();
-      requestAnimationFrame(() => {
-        lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
-        lbStrip.style.transform  = 'translateX(0px)';
-      });
-    }, 320);
+    const outX  = dir < 0 ? -sw : sw;   // current exits this direction
+    const inX   = dir < 0 ?  sw : -sw;  // new enters from opposite side
+
+    // Create incoming image element
+    const incomingImg = document.createElement('img');
+    incomingImg.src = _lbImages[newIndex].src;
+    incomingImg.style.cssText = `
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:contain; max-width:90%; max-height:90%;
+      margin:auto; display:block; border-radius:2px;
+      transform:translateX(${inX}px); will-change:transform;
+      user-select:none; -webkit-user-select:none; -webkit-user-drag:none;
+    `;
+    lbStage.appendChild(incomingImg);
+
+    // Animate both simultaneously
+    requestAnimationFrame(() => {
+      const ease = 'transform 0.36s cubic-bezier(0.4,0,0.2,1)';
+      lbImg.style.transition = ease;
+      lbImg.style.transform  = `translateX(${outX}px)`;
+      incomingImg.style.transition = ease;
+      incomingImg.style.transform  = 'translateX(0px)';
+
+      setTimeout(() => {
+        lbIndex = newIndex;
+        showLbImage();
+        lbStage.removeChild(incomingImg);
+      }, 360);
+    });
   }
 
   lbStage.addEventListener('wheel', e => {
@@ -956,8 +937,8 @@ async function dbDelete(id) {
         if (ady > adx + 10) swipeActive = false;
         if (swipeActive) {
           swipeDragX = e.clientX - swipeStartX;
-          lbStrip.style.transition = 'none';
-          lbStrip.style.transform  = `translateX(${swipeDragX}px)`;
+          lbImg.style.transition = 'none';
+          lbImg.style.transform  = `translateX(${swipeDragX}px)`;
         }
       }
     }
@@ -968,27 +949,21 @@ async function dbDelete(id) {
     if (swipeActive && activePointers.size === 1 && scale <= 1.001) {
       const dx  = e.clientX - swipeStartX;
       const ady = Math.abs(e.clientY - swipeStartY);
-      const sw  = lbStage.getBoundingClientRect().width;
       if (Math.abs(dx) > 50 && Math.abs(dx) > ady * 1.2) {
+        // dx < 0 means swiped left → go to next image (dir = -1)
+        // dx > 0 means swiped right → go to prev image (dir = +1)
         const dir = dx < 0 ? -1 : 1;
         const ni  = dx < 0
           ? (lbIndex + 1) % _lbImages.length
           : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
-        lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
-        lbStrip.style.transform  = `translateX(${dir > 0 ? sw : -sw}px)`;
-        lbIndex = ni;
-        setTimeout(() => {
-          lbStrip.style.transition = 'none';
-          lbStrip.style.transform  = `translateX(${dir > 0 ? -sw : sw}px)`;
-          showLbImage();
-          requestAnimationFrame(() => {
-            lbStrip.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
-            lbStrip.style.transform  = 'translateX(0px)';
-          });
-        }, 320);
+        // Reset img position first (it was dragging), then do proper slide
+        lbImg.style.transition = 'none';
+        lbImg.style.transform  = 'translateX(0px)';
+        slideToIndex(ni, dir);
       } else {
-        lbStrip.style.transition = 'transform 0.22s cubic-bezier(0.4,0,0.2,1)';
-        lbStrip.style.transform  = 'translateX(0px)';
+        // Snap back
+        lbImg.style.transition = 'transform 0.22s cubic-bezier(0.4,0,0.2,1)';
+        lbImg.style.transform  = 'translateX(0px)';
       }
     }
     activePointers.delete(e.pointerId);
