@@ -796,91 +796,115 @@ async function dbDelete(id) {
 
   document.getElementById('lb-close-btn').addEventListener('click', closeLightbox);
 
-  // Zoom & pan
+  // ── Track-based swipe (Instagram-style) ──
+  // The track holds 3 slots: prev (index -1), current (0), next (+1).
+  // Swiping translates the whole track. On commit we re-centre and reload.
   const lbStage = document.getElementById('lb-stage');
+  const track   = document.getElementById('lb-track');
+
   const MIN_SCALE = 1, MAX_SCALE = 6;
   let scale = 1, tx = 0, ty = 0;
   const activePointers = new Map();
   let pinchStartDist = 0, pinchStartScale = 1, pinchMid = {x:0,y:0};
-  let panLastX = 0, panLastY = 0, panMoved = false;
-  let swipeStartX = 0, swipeStartY = 0, swipeActive = false, swipeDragX = 0;
+  let panLastX = 0, panLastY = 0;
+  let swipeStartX = 0, swipeStartY = 0;
+  let swipeActive = false, panMoved = false, animating = false;
 
-  function applyTransform(animated) {
-    lbImg.style.transition = animated ? 'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
-    lbImg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-    lbImg.classList.toggle('zoomed', scale > 1.001);
+  // track offset: 0 = centred on current slot
+  let trackX = 0;
+
+  function sw() { return lbStage.getBoundingClientRect().width; }
+
+  function setTrack(x, animated) {
+    track.style.transition = animated ? 'transform 0.32s cubic-bezier(0.4,0,0.2,1)' : 'none';
+    track.style.transform  = `translateX(${x}px)`;
+    trackX = x;
+  }
+
+  function buildTrack() {
+    // Populate prev / current / next slots
+    const slots = track.querySelectorAll('.lb-slot');
+    const indices = [
+      (lbIndex - 1 + _lbImages.length) % _lbImages.length,
+      lbIndex,
+      (lbIndex + 1) % _lbImages.length,
+    ];
+    slots.forEach((slot, i) => {
+      const img = slot.querySelector('img');
+      img.src = (_lbImages.length > 1 || i === 1) ? _lbImages[indices[i]].src : '';
+      img.style.transform = 'translate(0,0) scale(1)';
+    });
+    setTrack(0, false);
+  }
+
+  function commitSwipe(dir) {
+    // dir -1 = went left (next), +1 = went right (prev)
+    lbIndex = dir < 0
+      ? (lbIndex + 1) % _lbImages.length
+      : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
+    lbCounter.textContent = `${lbIndex + 1} / ${_lbImages.length}`;
+    resetDeleteConfirm();
+    // Instantly re-centre and reload neighbours without transition
+    buildTrack();
+  }
+
+  // Zoom on the centre slot image only
+  function getCentreImg() {
+    return track.querySelectorAll('.lb-slot')[1].querySelector('img');
+  }
+
+  function applyZoom(animated) {
+    const img = getCentreImg();
+    img.style.transition = animated ? 'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
+    img.style.transform  = `translate(${tx}px,${ty}px) scale(${scale})`;
+    img.classList.toggle('zoomed',  scale > 1.001);
+    img.classList.toggle('panning', false);
   }
   function resetZoom() {
     scale = 1; tx = 0; ty = 0;
-    applyTransform(false);
-    lbImg.classList.remove('panning');
+    const img = getCentreImg();
+    img.style.transition = 'none';
+    img.style.transform  = 'translate(0,0) scale(1)';
+    img.classList.remove('zoomed','panning');
   }
   function clampPan() {
     if (scale <= 1.001) { tx = 0; ty = 0; return; }
     const sr = lbStage.getBoundingClientRect();
-    const visW = sr.width, visH = sr.height;
-    const imgNatW = lbImg.naturalWidth  || lbImg.offsetWidth;
-    const imgNatH = lbImg.naturalHeight || lbImg.offsetHeight;
-    const ratio = Math.min(visW * 0.9 / imgNatW, visH * 0.9 / imgNatH);
-    const rendW = imgNatW * ratio;
-    const rendH = imgNatH * ratio;
-    const scaledW = rendW * scale;
-    const scaledH = rendH * scale;
-    const mx = Math.max(0, (scaledW - visW) / 2);
-    const my = Math.max(0, (scaledH - visH) / 2);
+    const img = getCentreImg();
+    const iw = img.naturalWidth  || img.offsetWidth  || sr.width  * 0.9;
+    const ih = img.naturalHeight || img.offsetHeight || sr.height * 0.9;
+    const r  = Math.min(sr.width * 0.9 / iw, sr.height * 0.9 / ih);
+    const mx = Math.max(0, (iw * r * scale - sr.width)  / 2);
+    const my = Math.max(0, (ih * r * scale - sr.height) / 2);
     tx = Math.max(-mx, Math.min(mx, tx));
     ty = Math.max(-my, Math.min(my, ty));
   }
   function zoomAt(cx, cy, ns) {
     ns = Math.max(MIN_SCALE, Math.min(MAX_SCALE, ns));
-    const sr   = lbStage.getBoundingClientRect();
-    const cx2  = cx - (sr.left + sr.width  / 2);
-    const cy2  = cy - (sr.top  + sr.height / 2);
-    const r    = ns / scale;
+    const sr  = lbStage.getBoundingClientRect();
+    const cx2 = cx - (sr.left + sr.width  / 2);
+    const cy2 = cy - (sr.top  + sr.height / 2);
+    const r   = ns / scale;
     tx = (tx - cx2) * r + cx2;
     ty = (ty - cy2) * r + cy2;
     scale = ns;
     if (scale <= 1.001) { scale = 1; tx = 0; ty = 0; }
     clampPan();
-    applyTransform(false);
+    applyZoom(false);
   }
 
-
-  function slideToIndex(newIndex, dir) {
-    // dir: -1 = going forward (swipe left), +1 = going back (swipe right)
-    // current slides out to the left (-1) or right (+1)
-    // new image comes in from the right (+1 dir means new from left, -1 means new from right)
-    if (newIndex === lbIndex) return;
-    const sw = lbStage.getBoundingClientRect().width;
-    const outX  = dir < 0 ? -sw : sw;   // current exits this direction
-    const inX   = dir < 0 ?  sw : -sw;  // new enters from opposite side
-
-    // Create incoming image element
-    const incomingImg = document.createElement('img');
-    incomingImg.src = _lbImages[newIndex].src;
-    incomingImg.style.cssText = `
-      position:absolute; inset:0; width:100%; height:100%;
-      object-fit:contain; max-width:90%; max-height:90%;
-      margin:auto; display:block; border-radius:2px;
-      transform:translateX(${inX}px); will-change:transform;
-      user-select:none; -webkit-user-select:none; -webkit-user-drag:none;
-    `;
-    lbStage.appendChild(incomingImg);
-
-    // Animate both simultaneously
-    requestAnimationFrame(() => {
-      const ease = 'transform 0.36s cubic-bezier(0.4,0,0.2,1)';
-      lbImg.style.transition = ease;
-      lbImg.style.transform  = `translateX(${outX}px)`;
-      incomingImg.style.transition = ease;
-      incomingImg.style.transform  = 'translateX(0px)';
-
-      setTimeout(() => {
-        lbIndex = newIndex;
-        showLbImage();
-        lbStage.removeChild(incomingImg);
-      }, 360);
-    });
+  function slideToIndex(newIndex) {
+    if (animating) return;
+    const dir = newIndex === (lbIndex + 1) % _lbImages.length ? -1 : 1;
+    animating = true;
+    setTrack(dir < 0 ? -sw() : sw(), true);
+    setTimeout(() => {
+      lbIndex = newIndex;
+      lbCounter.textContent = `${lbIndex + 1} / ${_lbImages.length}`;
+      resetDeleteConfirm();
+      buildTrack();
+      animating = false;
+    }, 320);
   }
 
   lbStage.addEventListener('wheel', e => {
@@ -889,7 +913,8 @@ async function dbDelete(id) {
   }, { passive: false });
 
   let lastTap = 0;
-  lbImg.addEventListener('click', e => {
+  lbStage.addEventListener('click', e => {
+    if (swipeActive) return;
     const now = Date.now();
     if (now - lastTap < 300) {
       e.preventDefault();
@@ -900,9 +925,10 @@ async function dbDelete(id) {
 
   lbStage.addEventListener('pointerdown', e => {
     if (e.button && e.button !== 0) return;
+    if (animating) return;
     lbStage.setPointerCapture(e.pointerId);
     activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    panMoved = false; swipeDragX = 0;
+    panMoved = false;
     if (activePointers.size === 2) {
       const pts = Array.from(activePointers.values());
       pinchStartDist  = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) || 1;
@@ -913,7 +939,7 @@ async function dbDelete(id) {
       panLastX = e.clientX; panLastY = e.clientY;
       swipeStartX = e.clientX; swipeStartY = e.clientY;
       swipeActive = scale <= 1.001;
-      if (scale > 1.001) lbImg.classList.add('panning');
+      if (scale > 1.001) getCentreImg().classList.add('panning');
     }
   });
 
@@ -930,15 +956,14 @@ async function dbDelete(id) {
       if (scale > 1.001) {
         tx += dx; ty += dy;
         if (Math.abs(dx) + Math.abs(dy) > 2) panMoved = true;
-        clampPan(); applyTransform(false); swipeActive = false;
+        clampPan(); applyZoom(false); swipeActive = false;
       } else {
-        const adx = Math.abs(e.clientX - swipeStartX), ady = Math.abs(e.clientY - swipeStartY);
-        if (adx > 6 || ady > 6) panMoved = true;
-        if (ady > adx + 10) swipeActive = false;
+        const adx = Math.abs(e.clientX - swipeStartX);
+        const ady = Math.abs(e.clientY - swipeStartY);
+        if (adx > 4 || ady > 4) panMoved = true;
+        if (ady > adx * 1.5) swipeActive = false;
         if (swipeActive) {
-          swipeDragX = e.clientX - swipeStartX;
-          lbImg.style.transition = 'none';
-          lbImg.style.transform  = `translateX(${swipeDragX}px)`;
+          setTrack(e.clientX - swipeStartX, false);
         }
       }
     }
@@ -949,26 +974,24 @@ async function dbDelete(id) {
     if (swipeActive && activePointers.size === 1 && scale <= 1.001) {
       const dx  = e.clientX - swipeStartX;
       const ady = Math.abs(e.clientY - swipeStartY);
-      if (Math.abs(dx) > 50 && Math.abs(dx) > ady * 1.2) {
-        // dx < 0 means swiped left → go to next image (dir = -1)
-        // dx > 0 means swiped right → go to prev image (dir = +1)
+      const W   = sw();
+      if (Math.abs(dx) > W * 0.25 && Math.abs(dx) > ady * 1.2) {
+        // Commit: animate track the rest of the way out, then reload
         const dir = dx < 0 ? -1 : 1;
-        const ni  = dx < 0
-          ? (lbIndex + 1) % _lbImages.length
-          : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
-        // Reset img position first (it was dragging), then do proper slide
-        lbImg.style.transition = 'none';
-        lbImg.style.transform  = 'translateX(0px)';
-        slideToIndex(ni, dir);
+        animating = true;
+        setTrack(dir < 0 ? -W : W, true);
+        setTimeout(() => {
+          commitSwipe(dir);
+          animating = false;
+        }, 320);
       } else {
         // Snap back
-        lbImg.style.transition = 'transform 0.22s cubic-bezier(0.4,0,0.2,1)';
-        lbImg.style.transform  = 'translateX(0px)';
+        setTrack(0, true);
       }
     }
     activePointers.delete(e.pointerId);
-    lbImg.classList.remove('panning');
-    swipeActive = false; swipeDragX = 0;
+    getCentreImg().classList.remove('panning');
+    swipeActive = false;
   }
   lbStage.addEventListener('pointerup',     endPointer);
   lbStage.addEventListener('pointercancel', endPointer);
