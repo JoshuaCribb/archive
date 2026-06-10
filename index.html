@@ -270,6 +270,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 2px;
     padding: 2px;
+    padding-bottom: 60px;
   }
   @media (min-width: 540px)  { #grid { grid-template-columns: repeat(3, 1fr); } }
   @media (min-width: 800px)  { #grid { grid-template-columns: repeat(4, 1fr); } }
@@ -497,6 +498,44 @@
   }
   #swipe-hint.show { opacity: 1; }
 
+  /* ── Refresh footer ── */
+  #refresh-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6,6,8,0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid var(--glass-border);
+    z-index: 49;
+  }
+
+  #refresh-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-family: var(--font);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    transition: background 0.18s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #refresh-btn:hover { background: rgba(255,255,255,0.08); }
+  #refresh-btn i { font-size: 15px; }
+
   input[type=file] { display: none; }
 
   ::-webkit-scrollbar { width: 3px; }
@@ -575,6 +614,14 @@
       <i class="ti ti-chevron-right"></i>
     </button>
   </div>
+</div>
+
+<!-- Refresh footer -->
+<div id="refresh-footer">
+  <button id="refresh-btn" onclick="location.reload(true)" aria-label="Force refresh page">
+    <i class="ti ti-refresh"></i>
+    Refresh
+  </button>
 </div>
 
 <script>
