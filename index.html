@@ -47,9 +47,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 18px;
+    padding: 0 16px;
     border-bottom: 1px solid var(--glass-border);
-    position: sticky;
+    position: static;
     top: 0;
     background: rgba(6,6,8,0.7);
     backdrop-filter: blur(20px) saturate(180%);
@@ -57,6 +57,22 @@
     z-index: 50;
   }
 
+  /* Left zone */
+  #topbar-left {
+    display: flex;
+    align-items: center;
+    min-width: 60px;
+  }
+
+  #count-badge {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-weight: 500;
+  }
+
+  /* Center zone */
   #wordmark {
     position: absolute;
     left: 50%;
@@ -69,40 +85,36 @@
     font-weight: 500;
     pointer-events: none;
     user-select: none;
+    white-space: nowrap;
   }
 
-  #toolbar {
+  /* Right zone */
+  #topbar-right {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-left: auto;
+    gap: 8px;
+    min-width: 60px;
+    justify-content: flex-end;
   }
 
-  /* Glass pill buttons */
+  /* Glass icon buttons */
   .tb-btn {
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    border-radius: 50%;
     color: var(--text-mid);
-    font-family: var(--font);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    padding: 7px 13px;
     cursor: pointer;
     transition: background 0.18s, border-color 0.18s, color 0.18s;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    white-space: nowrap;
-    min-height: 44px;
-    min-width: 44px;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
   }
-  .tb-btn i { font-size: 14px; }
+  .tb-btn i { font-size: 16px; }
   .tb-btn:hover {
     background: var(--glass-bg-hover);
     border-color: var(--glass-border-hover);
@@ -114,22 +126,10 @@
     color: var(--text);
   }
 
-  #status-area {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-right: 4px;
-  }
-
-  #count-badge {
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-    font-family: var(--font);
-  }
-
+  /* Sync dot — sits inline in right zone */
   #sync-dot {
-    width: 6px; height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--text-dim);
     transition: background 0.3s, box-shadow 0.3s;
@@ -145,21 +145,6 @@
   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
-  }
-
-  #topbar-divider {
-    width: 1px; height: 20px;
-    background: var(--glass-border);
-    margin: 0 2px;
-    flex-shrink: 0;
-  }
-
-  /* Mobile: hide text labels, keep icons only */
-  @media (max-width: 480px) {
-    #topbar { padding: 0 12px; }
-    .tb-label { display: none; }
-    .tb-btn { padding: 7px 10px; }
-    #count-badge { display: none; }
   }
 
   /* ── Input drawer ── */
@@ -522,23 +507,23 @@
 <body>
 
 <div id="topbar">
+  <!-- Left: image count -->
+  <div id="topbar-left">
+    <span id="count-badge"></span>
+  </div>
+
+  <!-- Center: wordmark -->
   <div id="wordmark">Archive</div>
 
-  <div id="toolbar">
-    <div id="status-area">
-      <div id="sync-dot"></div>
-      <span id="count-badge"></span>
-    </div>
-    <div id="topbar-divider"></div>
-    <button class="tb-btn" id="url-toggle-btn" aria-label="Add by URL">
-      <i class="ti ti-link"></i><span class="tb-label"> URL</span>
-    </button>
-    <button class="tb-btn" id="upload-toggle-btn" aria-label="Upload">
-      <i class="ti ti-upload"></i><span class="tb-label"> Upload</span>
+  <!-- Right: upload + shuffle + sync dot -->
+  <div id="topbar-right">
+    <button class="tb-btn" id="upload-toggle-btn" aria-label="Add image">
+      <i class="ti ti-plus"></i>
     </button>
     <button class="tb-btn" id="shuffle-btn" aria-label="Shuffle">
       <i class="ti ti-arrows-shuffle"></i>
     </button>
+    <div id="sync-dot"></div>
   </div>
 </div>
 
@@ -711,7 +696,7 @@ async function dbDelete(id) {
     });
   }
 
-  // Drawer
+  // Drawer — upload button opens to URL tab by default, tabs let you switch
   function switchTab(tab) {
     const isUrl = tab === 'url';
     tabUrlBtn.classList.toggle('active', isUrl);
@@ -724,24 +709,19 @@ async function dbDelete(id) {
   function openDrawer(tab) {
     inputDrawer.classList.add('open');
     switchTab(tab);
-    document.getElementById('url-toggle-btn').classList.toggle('active', tab === 'url');
-    document.getElementById('upload-toggle-btn').classList.toggle('active', tab === 'upload');
+    document.getElementById('upload-toggle-btn').classList.add('active');
   }
 
   function closeDrawer() {
     inputDrawer.classList.remove('open');
-    document.getElementById('url-toggle-btn').classList.remove('active');
     document.getElementById('upload-toggle-btn').classList.remove('active');
   }
 
-  function toggleDrawer(tab) {
-    const isOpen = inputDrawer.classList.contains('open');
-    const curTab = tabUrlPanel.classList.contains('active') ? 'url' : 'upload';
-    (!isOpen || curTab !== tab) ? openDrawer(tab) : closeDrawer();
+  function toggleDrawer() {
+    inputDrawer.classList.contains('open') ? closeDrawer() : openDrawer('url');
   }
 
-  document.getElementById('url-toggle-btn').addEventListener('click', () => toggleDrawer('url'));
-  document.getElementById('upload-toggle-btn').addEventListener('click', () => toggleDrawer('upload'));
+  document.getElementById('upload-toggle-btn').addEventListener('click', toggleDrawer);
   tabUrlBtn.addEventListener('click', () => switchTab('url'));
   tabUploadBtn.addEventListener('click', () => switchTab('upload'));
 
