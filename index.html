@@ -6,27 +6,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Archive">
-<meta name="theme-color" content="#080808">
+<meta name="theme-color" content="#060608">
 <link rel="manifest" href="manifest.json">
-<script src="auth.js"></script>
 <title>archive.</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #080808;
-    --surface: #111111;
-    --border: #222222;
-    --border-hover: #3a3a3a;
-    --text: #ede8df;
-    --text-dim: #555;
-    --text-muted: #333;
-    --accent: #ede8df;
+    --bg: #060608;
+    --glass-bg: rgba(255,255,255,0.04);
+    --glass-bg-hover: rgba(255,255,255,0.08);
+    --glass-border: rgba(255,255,255,0.09);
+    --glass-border-hover: rgba(255,255,255,0.18);
+    --glass-strong: rgba(255,255,255,0.06);
+    --text: #f0ece4;
+    --text-mid: rgba(240,236,228,0.5);
+    --text-dim: rgba(240,236,228,0.28);
     --font: 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif;
-    --mono: 'Courier New', monospace;
-    --radius: 3px;
-    --topbar-h: 52px;
+    --topbar-h: 56px;
+    --r: 10px;
+    --r-sm: 6px;
   }
 
   html { background: var(--bg); }
@@ -38,6 +38,7 @@
     font-family: var(--font);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 
   /* ── Topbar ── */
@@ -46,40 +47,25 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--border);
+    padding: 0 18px;
+    border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
-    background: rgba(8,8,8,0.96);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(6,6,8,0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     z-index: 50;
   }
 
-  #back-btn {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--text);
-    text-decoration: none;
-    font-family: var(--font);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    opacity: 0.5;
-    transition: opacity 0.2s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #back-btn:hover { opacity: 1; }
-  #back-btn i { font-size: 14px; }
+ 
 
   #wordmark {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font);
-    font-size: 13px;
-    letter-spacing: 0.3em;
+    font-size: 12px;
+    letter-spacing: 0.36em;
     text-transform: uppercase;
     color: var(--text);
     font-weight: 500;
@@ -90,99 +76,100 @@
   #toolbar {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
   }
 
+  /* Glass pill buttons — clearly visible */
   .tb-btn {
     position: relative;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius);
-    color: var(--text-dim);
-    font-size: 18px;
-    width: 38px;
-    height: 38px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    color: var(--text-mid);
+    font-family: var(--font);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 7px 13px;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    flex-shrink: 0;
-  }
-  .tb-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-  .tb-btn.active { color: var(--text); }
-
-  .tb-btn .tip {
-    position: absolute;
-    bottom: -28px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-dim);
     white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s;
-    font-family: var(--font);
   }
-  .tb-btn:hover .tip { opacity: 1; }
+  .tb-btn i { font-size: 14px; }
+  .tb-btn:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    color: var(--text);
+  }
+  .tb-btn.active {
+    background: rgba(255,255,255,0.11);
+    border-color: rgba(255,255,255,0.3);
+    color: var(--text);
+  }
 
-  #divider-v {
-    width: 1px;
-    height: 18px;
-    background: var(--border);
-    margin: 0 6px;
-    flex-shrink: 0;
+  #status-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
   }
 
   #count-badge {
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
     font-family: var(--font);
-    margin-right: 4px;
-    white-space: nowrap;
   }
 
   #sync-dot {
-    width: 5px;
-    height: 5px;
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--text-dim);
+    transition: background 0.3s, box-shadow 0.3s;
     flex-shrink: 0;
-    transition: background 0.3s;
-    margin-right: 2px;
   }
-  #sync-dot.syncing { background: #6affb8; box-shadow: 0 0 6px rgba(106,255,184,0.5); }
-  #sync-dot.error   { background: #ff6a6a; }
+  #sync-dot.syncing {
+    background: #5effc8;
+    box-shadow: 0 0 8px rgba(94,255,200,0.6);
+    animation: pulse-dot 1s ease-in-out infinite;
+  }
+  #sync-dot.error { background: #ff5f5f; box-shadow: 0 0 8px rgba(255,95,95,0.5); }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #topbar-divider {
+    width: 1px; height: 20px;
+    background: var(--glass-border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
 
   /* ── Input drawer ── */
   #input-drawer {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
-    border-bottom: 1px solid transparent;
+    transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1);
   }
-  #input-drawer.open {
-    max-height: 200px;
-    border-bottom-color: var(--border);
-  }
+  #input-drawer.open { max-height: 220px; }
 
   #input-inner {
-    padding: 14px 20px;
-    background: var(--surface);
+    padding: 16px 18px 18px;
+    background: rgba(255,255,255,0.025);
+    border-bottom: 1px solid var(--glass-border);
   }
 
   .drawer-tabs {
     display: flex;
     gap: 0;
-    margin-bottom: 14px;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
   }
   .drawer-tab {
     font-family: var(--font);
@@ -192,8 +179,8 @@
     color: var(--text-dim);
     background: transparent;
     border: none;
-    padding: 0 0 10px;
-    margin-right: 20px;
+    padding: 4px 0;
+    margin-right: 22px;
     cursor: pointer;
     position: relative;
     transition: color 0.15s;
@@ -202,67 +189,67 @@
   .drawer-tab::after {
     content: '';
     position: absolute;
-    bottom: -1px;
-    left: 0; right: 0;
+    bottom: -2px; left: 0; right: 0;
     height: 1px;
     background: var(--text);
     transform: scaleX(0);
     transition: transform 0.2s;
+    transform-origin: left;
   }
   .drawer-tab.active { color: var(--text); }
   .drawer-tab.active::after { transform: scaleX(1); }
 
-  #tab-url-panel, #tab-upload-panel {
-    display: none;
-  }
+  #tab-url-panel, #tab-upload-panel { display: none; }
   #tab-url-panel.active, #tab-upload-panel.active {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
 
   #url-input {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
+    flex: 1; min-width: 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
     color: var(--text);
     font-family: var(--font);
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    padding: 6px 0;
+    font-size: 16px;
+    letter-spacing: 0.03em;
+    padding: 9px 13px;
     outline: none;
-    transition: border-color 0.15s;
-    font-size: 16px; /* prevent iOS zoom */
+    transition: border-color 0.15s, background 0.15s;
   }
-  #url-input:focus { border-bottom-color: var(--text-dim); }
-  #url-input::placeholder { color: var(--text-muted); font-size: 12px; }
+  #url-input:focus {
+    border-color: var(--glass-border-hover);
+    background: rgba(255,255,255,0.07);
+  }
+  #url-input::placeholder { color: var(--text-dim); font-size: 13px; }
 
   #add-url-btn {
     background: var(--text);
     border: none;
-    border-radius: var(--radius);
+    border-radius: 20px;
     color: var(--bg);
     font-family: var(--font);
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    padding: 8px 14px;
+    padding: 9px 18px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
     transition: opacity 0.15s;
     touch-action: manipulation;
   }
-  #add-url-btn:hover { opacity: 0.85; }
+  #add-url-btn:hover { opacity: 0.82; }
 
   #drop-zone {
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--glass-border);
+    border-radius: var(--r-sm);
+    padding: 20px;
     text-align: center;
-    color: var(--text-muted);
+    color: var(--text-dim);
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -270,9 +257,12 @@
     transition: all 0.2s;
     width: 100%;
   }
-  #drop-zone:hover,
-  #drop-zone.drag-over { border-color: var(--text-dim); color: var(--text-dim); }
-  #drop-zone i { font-size: 20px; display: block; margin-bottom: 6px; opacity: 0.4; }
+  #drop-zone:hover, #drop-zone.drag-over {
+    border-color: var(--glass-border-hover);
+    color: var(--text-mid);
+    background: rgba(255,255,255,0.06);
+  }
+  #drop-zone i { font-size: 22px; display: block; margin-bottom: 7px; opacity: 0.35; }
 
   /* ── Grid ── */
   #grid {
@@ -281,7 +271,6 @@
     gap: 2px;
     padding: 2px;
   }
-
   @media (min-width: 540px)  { #grid { grid-template-columns: repeat(3, 1fr); } }
   @media (min-width: 800px)  { #grid { grid-template-columns: repeat(4, 1fr); } }
   @media (min-width: 1100px) { #grid { grid-template-columns: repeat(5, 1fr); } }
@@ -293,55 +282,78 @@
     aspect-ratio: 1;
     overflow: hidden;
     cursor: pointer;
-    background: var(--surface);
+    background: #0f0f12;
   }
 
   .grid-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.4s;
     opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.4s;
     will-change: transform;
   }
   .grid-item img.loaded { opacity: 1; }
   .grid-item:hover img { transform: scale(1.05); }
 
-  .grid-item .del-btn {
+  /* Glass delete button — always slightly visible on touch */
+  .del-btn {
     position: absolute;
-    top: 7px;
-    right: 7px;
-    background: rgba(8,8,8,0.8);
-    border: 1px solid rgba(255,255,255,0.08);
+    top: 8px; right: 8px;
+    background: rgba(6,6,8,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 50%;
-    width: 28px; height: 28px;
+    width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.2s, background 0.15s;
+    transition: opacity 0.2s, background 0.15s, border-color 0.15s;
     color: var(--text);
-    font-size: 12px;
+    font-size: 13px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    backdrop-filter: blur(4px);
   }
-  @media (hover: none) { .grid-item .del-btn { opacity: 0.6; } }
+  @media (hover: none) { .del-btn { opacity: 0.65; } }
   .grid-item:hover .del-btn { opacity: 1; }
-  .del-btn:hover { background: rgba(255,80,80,0.3) !important; }
+  .del-btn:hover {
+    background: rgba(255,60,60,0.35) !important;
+    border-color: rgba(255,100,100,0.4) !important;
+  }
+
+  /* Shimmer skeleton */
+  .grid-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #0f0f12 0%, #181820 50%, #0f0f12 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    opacity: 1;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .grid-item.img-loaded::before { opacity: 0; }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 
   /* ── Empty state ── */
   #empty-state {
     display: none;
     text-align: center;
-    padding: 100px 20px;
-    color: var(--text-muted);
+    padding: 110px 20px;
+    color: var(--text-dim);
   }
-  #empty-state i { font-size: 36px; display: block; margin-bottom: 16px; opacity: 0.3; }
+  #empty-state i { font-size: 34px; display: block; margin-bottom: 14px; opacity: 0.25; }
   #empty-state p {
     font-size: 9px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    line-height: 2.2;
+    line-height: 2.4;
   }
   #empty-state.visible { display: block; }
 
@@ -350,7 +362,9 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(4,4,4,0.98);
+    background: rgba(3,3,5,0.96);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     z-index: 200;
     flex-direction: column;
     align-items: stretch;
@@ -362,39 +376,40 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    height: 52px;
-    border-bottom: 1px solid var(--border);
+    height: 56px;
+    background: rgba(6,6,8,0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--glass-border);
     flex-shrink: 0;
   }
 
   #lb-counter {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--text-dim);
     font-family: var(--font);
   }
 
-  #lb-actions {
-    display: flex;
-    gap: 2px;
-    align-items: center;
-  }
-
   .lb-btn {
-    background: transparent;
-    border: none;
-    border-radius: var(--radius);
-    color: var(--text-dim);
-    font-size: 18px;
-    width: 38px; height: 38px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    color: var(--text-mid);
+    font-size: 16px;
+    width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  .lb-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .lb-btn:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    color: var(--text);
+  }
 
   #lb-stage {
     flex: 1;
@@ -410,7 +425,6 @@
     max-width: 90vw;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 1px;
     transition: opacity 0.2s;
     transform-origin: 0 0;
     touch-action: none;
@@ -420,129 +434,112 @@
     -webkit-user-drag: none;
     cursor: zoom-in;
     display: block;
+    border-radius: 2px;
   }
-  #lightbox-img.zoomed { cursor: grab; }
+  #lightbox-img.zoomed  { cursor: grab; }
   #lightbox-img.panning { cursor: grabbing; }
 
   #lb-footer {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 12px;
     padding: 0 16px;
-    height: 64px;
-    border-top: 1px solid var(--border);
+    height: 72px;
+    background: rgba(6,6,8,0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--glass-border);
     flex-shrink: 0;
   }
 
+  /* Bigger, glassier nav arrows */
   .nav-arrow {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text-dim);
-    width: 44px; height: 44px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    color: var(--text-mid);
+    width: 48px; height: 48px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: all 0.15s;
-    font-size: 16px;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.15s;
+    font-size: 18px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  .nav-arrow:hover, .nav-arrow:active {
-    border-color: var(--border-hover);
+  .nav-arrow:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
     color: var(--text);
-    background: rgba(255,255,255,0.04);
+    transform: scale(1.06);
   }
+  .nav-arrow:active { transform: scale(0.96); }
 
-  /* Swipe hint — only on touch devices, fades after first open */
   #swipe-hint {
     position: absolute;
-    bottom: 80px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 9px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--text-dim);
     font-family: var(--font);
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.4s;
+    transition: opacity 0.5s;
     white-space: nowrap;
+    background: rgba(6,6,8,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
   }
   #swipe-hint.show { opacity: 1; }
 
   input[type=file] { display: none; }
 
-  /* Skeleton shimmer for loading state */
-  .grid-item::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, var(--surface) 0%, #1a1a1a 50%, var(--surface) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s ease-in-out infinite;
-    opacity: 1;
-    transition: opacity 0.3s;
-  }
-  .grid-item.img-loaded::before { opacity: 0; }
-
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<!-- Topbar -->
-<div id="topbar">
-  <a href="control-panel.html" id="back-btn">
-    <i class="ti ti-arrow-left"></i>
-    <span>Back</span>
-  </a>
 
   <div id="wordmark">Archive</div>
 
   <div id="toolbar">
-    <div id="sync-dot"></div>
-    <span id="count-badge"></span>
-    <div id="divider-v"></div>
+    <div id="status-area">
+      <div id="sync-dot"></div>
+      <span id="count-badge"></span>
+    </div>
+    <div id="topbar-divider"></div>
     <button class="tb-btn" id="url-toggle-btn" aria-label="Add by URL">
-      <i class="ti ti-link"></i>
-      <span class="tip">URL</span>
+      <i class="ti ti-link"></i> URL
     </button>
-    <button class="tb-btn" id="upload-toggle-btn" aria-label="Upload image">
-      <i class="ti ti-upload"></i>
-      <span class="tip">Upload</span>
+    <button class="tb-btn" id="upload-toggle-btn" aria-label="Upload">
+      <i class="ti ti-upload"></i> Upload
     </button>
     <button class="tb-btn" id="shuffle-btn" aria-label="Shuffle">
       <i class="ti ti-arrows-shuffle"></i>
-      <span class="tip">Shuffle</span>
     </button>
   </div>
 </div>
 
-<!-- Input drawer -->
 <div id="input-drawer">
   <div id="input-inner">
     <div class="drawer-tabs">
       <button class="drawer-tab active" id="tab-url">URL</button>
       <button class="drawer-tab" id="tab-upload">Upload</button>
     </div>
-
     <div id="tab-url-panel" class="active">
       <input id="url-input" type="url" inputmode="url"
         placeholder="Paste image URL or Pinterest link"
         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
       <button id="add-url-btn">Add</button>
     </div>
-
     <div id="tab-upload-panel">
       <div id="drop-zone">
         <i class="ti ti-photo-up"></i>
@@ -554,30 +551,23 @@
 
 <input type="file" id="file-input" accept="image/*" multiple>
 
-<!-- Grid -->
 <div id="grid"></div>
 <div id="empty-state">
   <i class="ti ti-stack-2"></i>
-  <p>Your archive is empty.<br>Add images via URL or upload.</p>
+  <p>Archive is empty.<br>Add images via URL or upload.</p>
 </div>
 
-<!-- Lightbox -->
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
-
   <div id="lb-header">
     <span id="lb-counter">1 / 1</span>
-    <div id="lb-actions">
-      <button class="lb-btn" id="lb-close-btn" aria-label="Close">
-        <i class="ti ti-x"></i>
-      </button>
-    </div>
+    <button class="lb-btn" id="lb-close-btn" aria-label="Close">
+      <i class="ti ti-x"></i>
+    </button>
   </div>
-
   <div id="lb-stage">
     <img id="lightbox-img" src="" alt="Full size preview" />
     <span id="swipe-hint">Swipe to navigate</span>
   </div>
-
   <div id="lb-footer">
     <button class="nav-arrow" id="prev-btn" aria-label="Previous">
       <i class="ti ti-chevron-left"></i>
@@ -586,13 +576,9 @@
       <i class="ti ti-chevron-right"></i>
     </button>
   </div>
-
 </div>
 
 <script>
-Auth.require();
-
-// ── Supabase ──────────────────────────────────────────────────
 const SB_URL = 'https://srunklqdxxuaicpzjrpz.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNydW5rbHFkeHh1YWljcHpqcnB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4MjEsImV4cCI6MjA5NDY1MjgyMX0.yBGqtYVBaHtJP07BD0mhBxdGI3s5CWRMLJU1ui96Ijo';
 const TABLE  = 'archive_images';
@@ -617,36 +603,28 @@ async function dbDelete(id) {
   if (!r.ok) throw new Error(await r.text());
 }
 
-// ── App ───────────────────────────────────────────────────────
 (async () => {
-  let images    = [];
-  let lbIndex   = 0;
-  let _lbImages = [];
-  let swipeHintShown = false;
+  let images = [], lbIndex = 0, _lbImages = [], swipeHintShown = false;
 
-  const grid         = document.getElementById('grid');
-  const emptyState   = document.getElementById('empty-state');
-  const countBadge   = document.getElementById('count-badge');
-  const syncDot      = document.getElementById('sync-dot');
-  const lightbox     = document.getElementById('lightbox');
-  const lbImg        = document.getElementById('lightbox-img');
-  const lbCounter    = document.getElementById('lb-counter');
-  const inputDrawer  = document.getElementById('input-drawer');
-  const urlInput     = document.getElementById('url-input');
-  const dropZone     = document.getElementById('drop-zone');
-  const fileInput    = document.getElementById('file-input');
-  const tabUrlBtn    = document.getElementById('tab-url');
-  const tabUploadBtn = document.getElementById('tab-upload');
-  const tabUrlPanel  = document.getElementById('tab-url-panel');
+  const grid           = document.getElementById('grid');
+  const emptyState     = document.getElementById('empty-state');
+  const countBadge     = document.getElementById('count-badge');
+  const syncDot        = document.getElementById('sync-dot');
+  const lightbox       = document.getElementById('lightbox');
+  const lbImg          = document.getElementById('lightbox-img');
+  const lbCounter      = document.getElementById('lb-counter');
+  const inputDrawer    = document.getElementById('input-drawer');
+  const urlInput       = document.getElementById('url-input');
+  const dropZone       = document.getElementById('drop-zone');
+  const fileInput      = document.getElementById('file-input');
+  const tabUrlBtn      = document.getElementById('tab-url');
+  const tabUploadBtn   = document.getElementById('tab-upload');
+  const tabUrlPanel    = document.getElementById('tab-url-panel');
   const tabUploadPanel = document.getElementById('tab-upload-panel');
-  const swipeHint    = document.getElementById('swipe-hint');
+  const swipeHint      = document.getElementById('swipe-hint');
 
-  // Sync state
-  function setSync(state) {
-    syncDot.className = state;
-  }
+  const setSync = s => syncDot.className = s;
 
-  // Shuffle
   function shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -656,7 +634,6 @@ async function dbDelete(id) {
     return a;
   }
 
-  // Load
   async function loadImages() {
     setSync('syncing');
     try {
@@ -682,10 +659,7 @@ async function dbDelete(id) {
       setSync('');
       updateCount();
       renderGrid();
-    } catch(e) {
-      console.error(e);
-      setSync('error');
-    }
+    } catch(e) { console.error(e); setSync('error'); }
   }
 
   async function deleteImage(id) {
@@ -696,33 +670,26 @@ async function dbDelete(id) {
       setSync('');
       updateCount();
       renderGrid();
-    } catch(e) {
-      console.error(e);
-      setSync('error');
-    }
+    } catch(e) { console.error(e); setSync('error'); }
   }
 
   function renderGrid(doShuffle = false) {
     const display = doShuffle ? shuffle(images) : images;
     grid.innerHTML = '';
     emptyState.classList.toggle('visible', display.length === 0);
-
     display.forEach((img, idx) => {
       const item = document.createElement('div');
       item.className = 'grid-item';
-
       const el = document.createElement('img');
       el.alt = '';
       el.onload  = () => { el.classList.add('loaded'); item.classList.add('img-loaded'); };
-      el.onerror = () => { item.classList.add('img-loaded'); };
+      el.onerror = () => item.classList.add('img-loaded');
       el.src = img.src;
-
       const del = document.createElement('button');
       del.className = 'del-btn';
       del.setAttribute('aria-label', 'Remove');
       del.innerHTML = '<i class="ti ti-x"></i>';
       del.addEventListener('click', e => { e.stopPropagation(); deleteImage(img.id); });
-
       item.appendChild(el);
       item.appendChild(del);
       item.addEventListener('click', () => { lbIndex = idx; openLightbox(display); });
@@ -730,20 +697,14 @@ async function dbDelete(id) {
     });
   }
 
-  // ── Drawer tabs ───────────────────────────────────────────────
+  // Drawer
   function switchTab(tab) {
-    if (tab === 'url') {
-      tabUrlBtn.classList.add('active');
-      tabUploadBtn.classList.remove('active');
-      tabUrlPanel.classList.add('active');
-      tabUploadPanel.classList.remove('active');
-      setTimeout(() => urlInput.focus(), 50);
-    } else {
-      tabUploadBtn.classList.add('active');
-      tabUrlBtn.classList.remove('active');
-      tabUploadPanel.classList.add('active');
-      tabUrlPanel.classList.remove('active');
-    }
+    const isUrl = tab === 'url';
+    tabUrlBtn.classList.toggle('active', isUrl);
+    tabUploadBtn.classList.toggle('active', !isUrl);
+    tabUrlPanel.classList.toggle('active', isUrl);
+    tabUploadPanel.classList.toggle('active', !isUrl);
+    if (isUrl) setTimeout(() => urlInput.focus(), 50);
   }
 
   function openDrawer(tab) {
@@ -761,12 +722,8 @@ async function dbDelete(id) {
 
   function toggleDrawer(tab) {
     const isOpen = inputDrawer.classList.contains('open');
-    const activeTab = tabUrlPanel.classList.contains('active') ? 'url' : 'upload';
-    if (!isOpen || activeTab !== tab) {
-      openDrawer(tab);
-    } else {
-      closeDrawer();
-    }
+    const curTab = tabUrlPanel.classList.contains('active') ? 'url' : 'upload';
+    (!isOpen || curTab !== tab) ? openDrawer(tab) : closeDrawer();
   }
 
   document.getElementById('url-toggle-btn').addEventListener('click', () => toggleDrawer('url'));
@@ -774,18 +731,17 @@ async function dbDelete(id) {
   tabUrlBtn.addEventListener('click', () => switchTab('url'));
   tabUploadBtn.addEventListener('click', () => switchTab('upload'));
 
-  // ── Lightbox ──────────────────────────────────────────────────
+  // Lightbox
   function openLightbox(imgs) {
     _lbImages = imgs;
     lightbox.classList.add('open');
     document.body.style.overflow = 'hidden';
     showLbImage();
     document.addEventListener('keydown', handleKey);
-    // Show swipe hint once on touch devices
     if (!swipeHintShown && 'ontouchstart' in window && _lbImages.length > 1) {
       swipeHintShown = true;
       swipeHint.classList.add('show');
-      setTimeout(() => swipeHint.classList.remove('show'), 2200);
+      setTimeout(() => swipeHint.classList.remove('show'), 2400);
     }
   }
 
@@ -800,8 +756,8 @@ async function dbDelete(id) {
     resetZoom();
     lbImg.style.opacity = 0;
     lbImg.src = _lbImages[lbIndex].src;
-    lbImg.onload = () => { lbImg.style.opacity = 1; };
-    lbCounter.textContent = (lbIndex + 1) + ' / ' + _lbImages.length;
+    lbImg.onload = () => lbImg.style.opacity = 1;
+    lbCounter.textContent = `${lbIndex + 1} / ${_lbImages.length}`;
   }
 
   function handleKey(e) {
@@ -814,92 +770,75 @@ async function dbDelete(id) {
   document.getElementById('next-btn').addEventListener('click', () => { lbIndex = (lbIndex + 1) % _lbImages.length; showLbImage(); });
   document.getElementById('prev-btn').addEventListener('click', () => { lbIndex = (lbIndex - 1 + _lbImages.length) % _lbImages.length; showLbImage(); });
 
-  // ── Zoom & pan ────────────────────────────────────────────────
+  // Zoom & pan
   const lbStage = document.getElementById('lb-stage');
   const MIN_SCALE = 1, MAX_SCALE = 6;
   let scale = 1, tx = 0, ty = 0;
   const activePointers = new Map();
-  let pinchStartDist = 0, pinchStartScale = 1, pinchMid = { x: 0, y: 0 };
-  let panLastX = 0, panLastY = 0;
-  let panMoved = false;
-  let pointerDownTime = 0;
-
-  // Swipe state (for navigation)
+  let pinchStartDist = 0, pinchStartScale = 1, pinchMid = {x:0,y:0};
+  let panLastX = 0, panLastY = 0, panMoved = false;
   let swipeStartX = 0, swipeStartY = 0, swipeActive = false;
 
   function applyTransform() {
-    lbImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    lbImg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
     lbImg.classList.toggle('zoomed', scale > 1.001);
   }
-
   function resetZoom() {
     scale = 1; tx = 0; ty = 0;
     applyTransform();
     lbImg.classList.remove('panning');
   }
-
   function clampPan() {
     if (scale <= 1.001) { tx = 0; ty = 0; return; }
-    const rect  = lbImg.getBoundingClientRect();
-    const sRect = lbStage.getBoundingClientRect();
-    const maxX  = Math.max(0, (rect.width  - sRect.width)  / 2 + 60);
-    const maxY  = Math.max(0, (rect.height - sRect.height) / 2 + 60);
-    tx = Math.max(-maxX, Math.min(maxX, tx));
-    ty = Math.max(-maxY, Math.min(maxY, ty));
+    const rect = lbImg.getBoundingClientRect();
+    const sr   = lbStage.getBoundingClientRect();
+    const mx = Math.max(0, (rect.width  - sr.width)  / 2 + 60);
+    const my = Math.max(0, (rect.height - sr.height) / 2 + 60);
+    tx = Math.max(-mx, Math.min(mx, tx));
+    ty = Math.max(-my, Math.min(my, ty));
   }
-
-  function zoomAt(clientX, clientY, newScale) {
-    newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
-    const rect      = lbImg.getBoundingClientRect();
-    const imgCX     = rect.left + rect.width  / 2;
-    const imgCY     = rect.top  + rect.height / 2;
-    const offsetX   = clientX - imgCX;
-    const offsetY   = clientY - imgCY;
-    const ratio     = newScale / scale;
-    tx = (tx - offsetX) * ratio + offsetX;
-    ty = (ty - offsetY) * ratio + offsetY;
-    scale = newScale;
+  function zoomAt(cx, cy, ns) {
+    ns = Math.max(MIN_SCALE, Math.min(MAX_SCALE, ns));
+    const rect = lbImg.getBoundingClientRect();
+    const ox = cx - (rect.left + rect.width  / 2);
+    const oy = cy - (rect.top  + rect.height / 2);
+    const r  = ns / scale;
+    tx = (tx - ox) * r + ox;
+    ty = (ty - oy) * r + oy;
+    scale = ns;
     if (scale <= 1.001) { scale = 1; tx = 0; ty = 0; }
     clampPan();
     applyTransform();
   }
 
-  // Wheel zoom
   lbStage.addEventListener('wheel', e => {
     e.preventDefault();
     zoomAt(e.clientX, e.clientY, scale * Math.exp(-e.deltaY * 0.0015));
   }, { passive: false });
 
-  // Double-tap / double-click toggle zoom
   let lastTap = 0;
   lbImg.addEventListener('click', e => {
     const now = Date.now();
     if (now - lastTap < 300) {
       e.preventDefault();
-      if (scale > 1.001) resetZoom();
-      else zoomAt(e.clientX, e.clientY, 2.5);
+      scale > 1.001 ? resetZoom() : zoomAt(e.clientX, e.clientY, 2.5);
     }
     lastTap = now;
   });
 
-  // Pointer-based pinch + pan
   lbImg.addEventListener('pointerdown', e => {
     if (e.button && e.button !== 0) return;
     lbImg.setPointerCapture(e.pointerId);
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
     panMoved = false;
-    pointerDownTime = Date.now();
-
     if (activePointers.size === 2) {
       const pts = Array.from(activePointers.values());
-      pinchStartDist  = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      pinchStartDist  = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) || 1;
       pinchStartScale = scale;
-      pinchMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      pinchMid = {x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2};
     } else if (activePointers.size === 1) {
-      panLastX = e.clientX;
-      panLastY = e.clientY;
-      swipeStartX = e.clientX;
-      swipeStartY = e.clientY;
+      panLastX = e.clientX; panLastY = e.clientY;
+      swipeStartX = e.clientX; swipeStartY = e.clientY;
       swipeActive = scale <= 1.001;
       if (scale > 1.001) lbImg.classList.add('panning');
     }
@@ -907,69 +846,48 @@ async function dbDelete(id) {
 
   lbImg.addEventListener('pointermove', e => {
     if (!activePointers.has(e.pointerId)) return;
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
+    activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if (activePointers.size === 2) {
-      const pts  = Array.from(activePointers.values());
-      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
-      zoomAt(pinchMid.x, pinchMid.y, pinchStartScale * (dist / pinchStartDist));
-      panMoved = true;
-      swipeActive = false;
+      const pts = Array.from(activePointers.values());
+      zoomAt(pinchMid.x, pinchMid.y, pinchStartScale * (Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1) / pinchStartDist);
+      panMoved = true; swipeActive = false;
     } else if (activePointers.size === 1) {
-      const dx = e.clientX - panLastX;
-      const dy = e.clientY - panLastY;
-      panLastX = e.clientX;
-      panLastY = e.clientY;
-
+      const dx = e.clientX - panLastX, dy = e.clientY - panLastY;
+      panLastX = e.clientX; panLastY = e.clientY;
       if (scale > 1.001) {
         tx += dx; ty += dy;
         if (Math.abs(dx) + Math.abs(dy) > 2) panMoved = true;
-        clampPan();
-        applyTransform();
-        swipeActive = false;
+        clampPan(); applyTransform(); swipeActive = false;
       } else {
-        // Track for swipe
-        const totalDX = Math.abs(e.clientX - swipeStartX);
-        const totalDY = Math.abs(e.clientY - swipeStartY);
-        if (totalDX > 6 || totalDY > 6) panMoved = true;
-        // Cancel swipe if more vertical than horizontal
-        if (totalDY > totalDX + 10) swipeActive = false;
+        const adx = Math.abs(e.clientX - swipeStartX), ady = Math.abs(e.clientY - swipeStartY);
+        if (adx > 6 || ady > 6) panMoved = true;
+        if (ady > adx + 10) swipeActive = false;
       }
     }
   });
 
   function endPointer(e) {
     if (!activePointers.has(e.pointerId)) return;
-
-    // Swipe navigation (not zoomed, single finger, horizontal)
     if (swipeActive && activePointers.size === 1 && scale <= 1.001) {
-      const totalDX = e.clientX - swipeStartX;
-      const totalDY = Math.abs(e.clientY - swipeStartY);
-      if (Math.abs(totalDX) > 50 && Math.abs(totalDX) > totalDY * 1.2) {
-        lbIndex = totalDX < 0
-          ? (lbIndex + 1) % _lbImages.length
-          : (lbIndex - 1 + _lbImages.length) % _lbImages.length;
+      const dx = e.clientX - swipeStartX, ady = Math.abs(e.clientY - swipeStartY);
+      if (Math.abs(dx) > 50 && Math.abs(dx) > ady * 1.2) {
+        lbIndex = dx < 0 ? (lbIndex+1) % _lbImages.length : (lbIndex-1+_lbImages.length) % _lbImages.length;
         showLbImage();
       }
     }
-
     activePointers.delete(e.pointerId);
     lbImg.classList.remove('panning');
     swipeActive = false;
   }
-
   lbImg.addEventListener('pointerup',     endPointer);
   lbImg.addEventListener('pointercancel', endPointer);
   lbImg.addEventListener('pointerleave',  endPointer);
 
-  // ── URL add ───────────────────────────────────────────────────
+  // URL add
   document.getElementById('add-url-btn').addEventListener('click', addFromUrl);
   urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addFromUrl(); });
 
-  function isPinterest(url) {
-    return /pinterest\.(com|co\.[a-z]+)|pin\.it/i.test(url);
-  }
-
+  function isPinterest(url) { return /pinterest\.(com|co\.[a-z]+)|pin\.it/i.test(url); }
   async function resolvePinterest(url) {
     const r = await fetch('/api/pinterest?url=' + encodeURIComponent(url));
     if (!r.ok) throw new Error('Pinterest API failed');
@@ -983,46 +901,38 @@ async function dbDelete(id) {
     if (!url) return;
     urlInput.value = '';
     closeDrawer();
-
     if (isPinterest(url)) {
       setSync('syncing');
       try {
         const imgUrl = await resolvePinterest(url);
-        addImage({ id: crypto.randomUUID(), src: imgUrl, type: 'url' });
+        addImage({id: crypto.randomUUID(), src: imgUrl, type: 'url'});
       } catch(e) {
-        console.error(e);
-        setSync('error');
-        addImage({ id: crypto.randomUUID(), src: url, type: 'url' });
+        console.error(e); setSync('error');
+        addImage({id: crypto.randomUUID(), src: url, type: 'url'});
       }
     } else {
-      addImage({ id: crypto.randomUUID(), src: url, type: 'url' });
+      addImage({id: crypto.randomUUID(), src: url, type: 'url'});
     }
   }
 
-  // ── File upload ───────────────────────────────────────────────
-  dropZone.addEventListener('click', () => fileInput.click());
+  // File upload
+  dropZone.addEventListener('click',    () => fileInput.click());
   dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    handleFiles(e.dataTransfer.files);
-  });
-  fileInput.addEventListener('change', e => handleFiles(e.target.files));
+  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+  fileInput.addEventListener('change',   e => handleFiles(e.target.files));
 
   function handleFiles(files) {
     Array.from(files).forEach(file => {
       const reader = new FileReader();
-      reader.onload = ev => addImage({ id: crypto.randomUUID(), src: ev.target.result, type: 'file' });
+      reader.onload = ev => addImage({id: crypto.randomUUID(), src: ev.target.result, type: 'file'});
       reader.readAsDataURL(file);
     });
     closeDrawer();
   }
 
-  // ── Shuffle ───────────────────────────────────────────────────
   document.getElementById('shuffle-btn').addEventListener('click', () => renderGrid(true));
 
-  // ── Boot ──────────────────────────────────────────────────────
   loadImages();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
