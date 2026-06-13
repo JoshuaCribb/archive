@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Archive">
@@ -39,11 +39,13 @@
 
   /* ── Topbar ── */
   #topbar {
-    height: var(--topbar-h);
+    height: calc(var(--topbar-h) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding-left: 16px;
+    padding-right: 16px;
     border-bottom: 1px solid var(--glass-border);
     background: rgba(6,6,8,0.7);
     backdrop-filter: blur(20px) saturate(180%);
@@ -212,12 +214,14 @@
     display: none; position: fixed; inset: 0;
     background: #000; z-index: 200;
     flex-direction: column; align-items: stretch;
+    will-change: transform, opacity;
   }
   #lightbox.open { display: flex; }
 
   #lb-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 16px; height: 56px;
+    padding: 0 16px; height: calc(56px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
     background: rgba(6,6,8,0.6); backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--glass-border);
     flex-shrink: 0; position: relative; z-index: 10;
@@ -256,8 +260,9 @@
 
   #lb-footer {
     display: flex; align-items: center; justify-content: center;
-    height: 56px; background: rgba(6,6,8,0.6); backdrop-filter: blur(16px);
+    height: calc(56px + env(safe-area-inset-bottom)); background: rgba(6,6,8,0.6); backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--glass-border);
+    padding-bottom: env(safe-area-inset-bottom);
     flex-shrink: 0; position: relative; z-index: 10;
   }
   #lb-delete-btn {
@@ -383,7 +388,7 @@
 const SB_URL   = 'https://srunklqdxxuaicpzjrpz.supabase.co';
 const SB_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNydW5rbHFkeHh1YWljcHpqcnB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4MjEsImV4cCI6MjA5NDY1MjgyMX0.yBGqtYVBaHtJP07BD0mhBxdGI3s5CWRMLJU1ui96Ijo';
 const TABLE    = 'archive_images';
-const PASSWORD = '1868493';           // ← change this
+const PASSWORD = 'archive2024';           // ← change this
 const HDRS     = {
   'apikey': SB_KEY,
   'Authorization': 'Bearer ' + SB_KEY,
@@ -555,6 +560,9 @@ async function dbDelete(id) {
     document.removeEventListener('keydown', handleKey);
     resetZoom();
     resetDeleteConfirm();
+    lightbox.style.transition = 'none';
+    lightbox.style.transform  = '';
+    lightbox.style.opacity    = '';
   }
 
   // ── Track system ──
@@ -631,10 +639,33 @@ async function dbDelete(id) {
   const activePointers = new Map();
   let pinchStartDist = 0, pinchStartScale = 1, pinchMid = {x:0,y:0};
   let panLastX = 0, panLastY = 0;
-  let swipeStartX = 0, swipeStartY = 0;
-  let swipeActive = false, panMoved = false, animating = false;
+  let swipeStartX = 0, swipeStartY = 0, swipeStartT = 0;
+  let lastMoveY = 0, lastMoveT = 0;
+  let gestureDir = null; // null | 'h' | 'v' | 'pinch'
+  let verticalDragY = 0;
+  let panMoved = false, animating = false;
 
   function stageW() { return lbStage.getBoundingClientRect().width; }
+  function stageH() { return lbStage.getBoundingClientRect().height; }
+
+  function resetDismiss(animated) {
+    lightbox.style.transition = animated ? 'transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.22s' : 'none';
+    lightbox.style.transform  = 'translateY(0px)';
+    lightbox.style.opacity    = '1';
+    verticalDragY = 0;
+  }
+
+  function commitDismiss() {
+    const H = window.innerHeight || stageH();
+    animating = true;
+    lightbox.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.28s';
+    lightbox.style.transform  = `translateY(${H}px)`;
+    lightbox.style.opacity    = '0';
+    setTimeout(() => {
+      closeLightbox();
+      animating = false;
+    }, 280);
+  }
 
   lbStage.addEventListener('wheel', e => {
     e.preventDefault();
@@ -663,11 +694,14 @@ async function dbDelete(id) {
       pinchStartDist  = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y) || 1;
       pinchStartScale = scale;
       pinchMid = {x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2};
-      swipeActive = false;
+      if (gestureDir === 'v') resetDismiss(true);
+      gestureDir = 'pinch';
     } else if (activePointers.size === 1) {
       panLastX = e.clientX; panLastY = e.clientY;
       swipeStartX = e.clientX; swipeStartY = e.clientY;
-      swipeActive = scale <= 1.001;
+      swipeStartT = lastMoveT = performance.now();
+      lastMoveY = e.clientY;
+      gestureDir = null;
       if (scale > 1.001) slotImg(1).classList.add('panning');
     }
   });
@@ -678,21 +712,35 @@ async function dbDelete(id) {
     if (activePointers.size === 2) {
       const pts = Array.from(activePointers.values());
       zoomAt(pinchMid.x, pinchMid.y, pinchStartScale * (Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1) / pinchStartDist);
-      panMoved = true; swipeActive = false;
+      panMoved = true;
     } else if (activePointers.size === 1) {
       const dx = e.clientX - panLastX, dy = e.clientY - panLastY;
       panLastX = e.clientX; panLastY = e.clientY;
       if (scale > 1.001) {
         tx += dx; ty += dy;
         if (Math.abs(dx) + Math.abs(dy) > 2) panMoved = true;
-        clampPan(); applyZoom(false); swipeActive = false;
+        clampPan(); applyZoom(false);
       } else {
-        const adx = Math.abs(e.clientX - swipeStartX);
-        const ady = Math.abs(e.clientY - swipeStartY);
-        if (adx > 4 || ady > 4) panMoved = true;
-        if (ady > adx * 1.5) swipeActive = false;
-        if (swipeActive) {
-          setTrackDelta(e.clientX - swipeStartX, false);
+        const totalDx = e.clientX - swipeStartX;
+        const totalDy = e.clientY - swipeStartY;
+        const adx = Math.abs(totalDx), ady = Math.abs(totalDy);
+
+        if (gestureDir === null && (adx > 6 || ady > 6)) {
+          gestureDir = ady > adx ? 'v' : 'h';
+          panMoved = true;
+        }
+
+        if (gestureDir === 'h') {
+          setTrackDelta(totalDx, false);
+        } else if (gestureDir === 'v') {
+          const clampedDy = Math.max(0, totalDy);
+          verticalDragY = clampedDy;
+          const progress = Math.min(clampedDy / (stageH() * 0.6), 1);
+          lightbox.style.transition = 'none';
+          lightbox.style.transform  = `translateY(${clampedDy}px)`;
+          lightbox.style.opacity    = String(1 - progress * 0.55);
+          lastMoveY = e.clientY;
+          lastMoveT = performance.now();
         }
       }
     }
@@ -700,14 +748,14 @@ async function dbDelete(id) {
 
   function endPointer(e) {
     if (!activePointers.has(e.pointerId)) return;
-    if (swipeActive && activePointers.size === 1 && scale <= 1.001) {
+
+    if (gestureDir === 'h' && activePointers.size === 1 && scale <= 1.001) {
       const dx  = e.clientX - swipeStartX;
       const ady = Math.abs(e.clientY - swipeStartY);
       const W   = stageW();
       if (Math.abs(dx) > W * 0.22 && Math.abs(dx) > ady * 1.2 && _lbImages.length > 1) {
         const goNext = dx < 0; // swipe left = next
         animating = true;
-        // animate track fully off screen in swipe direction
         setTrackDelta(goNext ? -W : W, true);
         setTimeout(() => {
           const n = _lbImages.length;
@@ -718,10 +766,21 @@ async function dbDelete(id) {
       } else {
         setTrackDelta(0, true);
       }
+    } else if (gestureDir === 'v' && activePointers.size === 1 && scale <= 1.001) {
+      const H  = stageH();
+      const dt = Math.max(1, performance.now() - lastMoveT);
+      const vy = (e.clientY - lastMoveY) / dt; // px per ms, downward positive
+      const flick = vy > 0.5 && verticalDragY > 24;
+      if (flick || verticalDragY > H * 0.16) {
+        commitDismiss();
+      } else {
+        resetDismiss(true);
+      }
     }
+
     activePointers.delete(e.pointerId);
     slotImg(1).classList.remove('panning');
-    swipeActive = false;
+    if (activePointers.size === 0) gestureDir = null;
   }
   lbStage.addEventListener('pointerup',     endPointer);
   lbStage.addEventListener('pointercancel', endPointer);
@@ -788,7 +847,7 @@ async function dbDelete(id) {
     const url = urlInput.value.trim();
     if (!url) return;
     urlInput.value = '';
-    closeDrawer();
+    urlInput.focus();
     if (isPinterest(url)) {
       setSync('syncing');
       try {
