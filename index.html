@@ -336,7 +336,7 @@
     </div>
     <div id="tab-url-panel" class="active">
       <input id="url-input" type="url" inputmode="url"
-        placeholder="Paste image URL or Pinterest link"
+        placeholder="Paste one or more image URLs, separated by commas"
         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
       <button id="add-url-btn">Add</button>
     </div>
@@ -403,6 +403,11 @@ async function dbLoad() {
 }
 async function dbInsert(row) {
   const r = await fetch(`${SB_URL}/rest/v1/${TABLE}`, { method:'POST', headers: HDRS, body: JSON.stringify(row) });
+  if (!r.ok) throw new Error(await r.text());
+}
+async function dbInsertBatch(rows) {
+  if (!rows.length) return;
+  const r = await fetch(`${SB_URL}/rest/v1/${TABLE}`, { method:'POST', headers: HDRS, body: JSON.stringify(rows) });
   if (!r.ok) throw new Error(await r.text());
 }
 async function dbDelete(id) {
@@ -485,6 +490,13 @@ async function dbDelete(id) {
   async function addImage(row) {
     setSync('syncing');
     try { await dbInsert(row); images.push(row); setSync(''); updateCount(); renderGrid(); }
+    catch(e) { console.error(e); setSync('error'); }
+  }
+
+  async function addImages(rows) {
+    if (!rows.length) return;
+    setSync('syncing');
+    try { await dbInsertBatch(rows); images.push(...rows); setSync(''); updateCount(); renderGrid(); }
     catch(e) { console.error(e); setSync('error'); }
   }
 
@@ -843,23 +855,32 @@ async function dbDelete(id) {
     throw new Error(data.error || 'No image found');
   }
 
+  async function resolveUrl(url) {
+    if (isPinterest(url)) {
+      try { return await resolvePinterest(url); }
+      catch(e) { console.error(e); return url; }
+    }
+    return url;
+  }
+
   async function addFromUrl() {
-    const url = urlInput.value.trim();
-    if (!url) return;
+    const raw = urlInput.value.trim();
+    if (!raw) return;
     urlInput.value = '';
     urlInput.focus();
-    if (isPinterest(url)) {
-      setSync('syncing');
-      try {
-        const imgUrl = await resolvePinterest(url);
-        addImage({id: crypto.randomUUID(), src: imgUrl, type: 'url'});
-      } catch(e) {
-        console.error(e); setSync('error');
-        addImage({id: crypto.randomUUID(), src: url, type: 'url'});
-      }
-    } else {
-      addImage({id: crypto.randomUUID(), src: url, type: 'url'});
-    }
+
+    const urls = raw.split(',').map(u => u.trim()).filter(Boolean);
+    if (!urls.length) return;
+
+    const resolved = await Promise.all(urls.map(resolveUrl));
+    const base = Date.now();
+    const rows = resolved.map((src, i) => ({
+      id: crypto.randomUUID(),
+      src,
+      type: 'url',
+      created_at: new Date(base + i).toISOString()
+    }));
+    await addImages(rows);
   }
 
   // ── File upload (password-gated) ──
