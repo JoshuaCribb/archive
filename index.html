@@ -53,7 +53,7 @@
     z-index: 50;
     position: relative;
   }
-  #topbar-left { display: flex; align-items: center; min-width: 60px; }
+  #topbar-left { display: flex; align-items: center; gap: 8px; min-width: 60px; }
   #count-badge { font-size: 11px; letter-spacing: 0.14em; color: var(--text-dim); font-weight: 500; }
   #wordmark {
     position: absolute; left: 50%; transform: translateX(-50%);
@@ -81,6 +81,28 @@
   #sync-dot.syncing { background: #5effc8; box-shadow: 0 0 8px rgba(94,255,200,0.6); animation: pulse-dot 1s ease-in-out infinite; }
   #sync-dot.error   { background: #ff5f5f; box-shadow: 0 0 8px rgba(255,95,95,0.5); }
   @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Slideshow interval input ── */
+  #slideshow-seconds {
+    display: none;
+    width: 40px; height: 40px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    text-align: center;
+    padding: 0 2px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    -moz-appearance: textfield;
+  }
+  #slideshow-seconds.visible { display: block; }
+  #slideshow-seconds::-webkit-outer-spin-button,
+  #slideshow-seconds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  #slideshow-seconds:focus { border-color: var(--glass-border-hover); background: rgba(255,255,255,0.07); }
 
   /* ── Password overlay ── */
   #auth-overlay {
@@ -209,6 +231,33 @@
   #empty-state p { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; line-height: 2.4; }
   #empty-state.visible { display: block; }
 
+  /* ── Slideshow ── */
+  #slideshow-overlay {
+    display: none;
+    position: fixed;
+    top: calc(var(--topbar-h) + env(safe-area-inset-top));
+    left: 0; right: 0; bottom: 0;
+    background: #000;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  #slideshow-overlay.open { display: flex; }
+  .slideshow-img {
+    position: absolute;
+    top: 50%; left: 50%;
+    max-width: 100%; max-height: 100%;
+    width: auto; height: auto;
+    object-fit: contain;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+  }
+  .slideshow-img.active { opacity: 1; }
+
   /* ── Lightbox ── */
   #lightbox {
     display: none; position: fixed; inset: 0;
@@ -315,6 +364,10 @@
 <div id="topbar">
   <div id="topbar-left">
     <span id="count-badge"></span>
+    <button class="tb-btn" id="slideshow-btn" aria-label="Slideshow">
+      <i class="ti ti-player-play"></i>
+    </button>
+    <input id="slideshow-seconds" type="number" min="1" max="600" step="1" value="5" inputmode="numeric" aria-label="Seconds between slides" />
   </div>
   <div id="wordmark">Archive</div>
   <div id="topbar-right">
@@ -355,6 +408,11 @@
 <div id="empty-state">
   <i class="ti ti-stack-2"></i>
   <p>Archive is empty.<br>Add images via URL or upload.</p>
+</div>
+
+<div id="slideshow-overlay">
+  <img class="slideshow-img" id="ss-img-a" alt="" />
+  <img class="slideshow-img" id="ss-img-b" alt="" />
 </div>
 
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
@@ -440,6 +498,11 @@ async function dbDelete(id) {
   const authSubmit     = document.getElementById('auth-submit');
   const authCancel     = document.getElementById('auth-cancel');
   const lbDeleteBtn    = document.getElementById('lb-delete-btn');
+  const slideshowBtn   = document.getElementById('slideshow-btn');
+  const slideshowSecs  = document.getElementById('slideshow-seconds');
+  const slideshowOv    = document.getElementById('slideshow-overlay');
+  const ssImgA         = document.getElementById('ss-img-a');
+  const ssImgB         = document.getElementById('ss-img-b');
 
   // ── Auth ──
   function requireUnlock(action) {
@@ -903,6 +966,69 @@ async function dbDelete(id) {
   }
 
   document.getElementById('shuffle-btn').addEventListener('click', () => renderGrid(true));
+
+  // ── Slideshow ──
+  let ssActive = false, ssTimer = null, ssIndex = 0, ssShowingA = true;
+
+  function ssInterval() {
+    const v = parseInt(slideshowSecs.value, 10);
+    return (v && v > 0 ? v : 5) * 1000;
+  }
+
+  function ssSchedule() {
+    clearTimeout(ssTimer);
+    ssTimer = setTimeout(ssAdvance, ssInterval());
+  }
+
+  function ssAdvance() {
+    if (!ssActive) return;
+    if (!images.length) { stopSlideshow(); return; }
+    ssIndex = (ssIndex + 1) % images.length;
+    const next   = ssShowingA ? ssImgB : ssImgA;
+    const prev   = ssShowingA ? ssImgA : ssImgB;
+    next.src = images[ssIndex].src;
+    next.classList.add('active');
+    prev.classList.remove('active');
+    ssShowingA = !ssShowingA;
+    ssSchedule();
+  }
+
+  function startSlideshow() {
+    if (!images.length) return;
+    ssActive = true;
+    ssIndex  = 0;
+    ssShowingA = true;
+    ssImgB.classList.remove('active');
+    ssImgA.src = images[ssIndex].src;
+    ssImgA.classList.add('active');
+
+    slideshowBtn.innerHTML = '<i class="ti ti-player-stop"></i>';
+    slideshowBtn.classList.add('active');
+    slideshowSecs.classList.add('visible');
+    slideshowOv.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    ssSchedule();
+  }
+
+  function stopSlideshow() {
+    ssActive = false;
+    clearTimeout(ssTimer);
+    slideshowOv.classList.remove('open');
+    document.body.style.overflow = '';
+    slideshowBtn.innerHTML = '<i class="ti ti-player-play"></i>';
+    slideshowBtn.classList.remove('active');
+    slideshowSecs.classList.remove('visible');
+    ssImgA.classList.remove('active');
+    ssImgB.classList.remove('active');
+  }
+
+  slideshowBtn.addEventListener('click', () => {
+    ssActive ? stopSlideshow() : startSlideshow();
+  });
+  slideshowOv.addEventListener('click', stopSlideshow);
+  slideshowSecs.addEventListener('click', e => e.stopPropagation());
+  slideshowSecs.addEventListener('input', () => { if (ssActive) ssSchedule(); });
+  document.addEventListener('keydown', e => { if (ssActive && e.key === 'Escape') stopSlideshow(); });
 
   loadImages();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
