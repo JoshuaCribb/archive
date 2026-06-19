@@ -107,21 +107,29 @@
   /* ── Password overlay ── */
   #auth-overlay {
     display: none;
-    position: fixed; inset: 0; z-index: 500;
+    position: fixed; inset: 0; z-index: 9999;
     background: rgba(6,6,8,0.92);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: none;
   }
-  #auth-overlay.open { display: flex; }
+  #auth-overlay.open { display: flex; pointer-events: all; }
   #auth-overlay p {
     font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim);
+    pointer-events: none;
   }
   #auth-input {
     background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
     border-radius: var(--r-sm); color: var(--text); font-family: var(--font);
     font-size: 16px; letter-spacing: 0.08em; padding: 10px 16px;
     outline: none; transition: border-color 0.15s; text-align: center; width: 220px;
+    -webkit-appearance: none;
+    touch-action: manipulation;
+    pointer-events: all;
+    position: relative; z-index: 10000;
+    cursor: text;
   }
   #auth-input:focus { border-color: var(--glass-border-hover); }
   #auth-input.shake { animation: shake 0.35s ease; }
@@ -137,6 +145,9 @@
     color: var(--bg); font-family: var(--font); font-size: 9px;
     letter-spacing: 0.18em; text-transform: uppercase;
     padding: 10px 24px; cursor: pointer; transition: opacity 0.15s;
+    touch-action: manipulation; pointer-events: all;
+    position: relative; z-index: 10000;
+    -webkit-appearance: none;
   }
   #auth-submit:hover { opacity: 0.82; }
   #auth-cancel {
@@ -144,6 +155,9 @@
     font-family: var(--font); font-size: 9px; letter-spacing: 0.18em;
     text-transform: uppercase; cursor: pointer; padding: 6px;
     transition: color 0.15s;
+    touch-action: manipulation; pointer-events: all;
+    position: relative; z-index: 10000;
+    -webkit-appearance: none;
   }
   #auth-cancel:hover { color: var(--text); }
 
@@ -510,7 +524,8 @@ async function dbDelete(id) {
     pendingAction = action;
     authOverlay.classList.add('open');
     authInput.value = '';
-    setTimeout(() => authInput.focus(), 80);
+    // Let user tap the input naturally on iOS — forced focus breaks PWA keyboard
+    if (!('ontouchstart' in window)) setTimeout(() => authInput.focus(), 80);
   }
 
   function attemptUnlock() {
