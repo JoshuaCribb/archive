@@ -83,26 +83,6 @@
   @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   /* ── Slideshow interval input ── */
-  #slideshow-seconds {
-    display: none;
-    width: 40px; height: 40px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--r-sm);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 13px;
-    letter-spacing: 0.02em;
-    text-align: center;
-    padding: 0 2px;
-    outline: none;
-    transition: border-color 0.15s, background 0.15s;
-    -moz-appearance: textfield;
-  }
-  #slideshow-seconds.visible { display: block; }
-  #slideshow-seconds::-webkit-outer-spin-button,
-  #slideshow-seconds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  #slideshow-seconds:focus { border-color: var(--glass-border-hover); background: rgba(255,255,255,0.07); }
 
   /* ── Password overlay ── */
   #auth-overlay {
@@ -232,34 +212,6 @@
   #empty-state p { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; line-height: 2.4; }
   #empty-state.visible { display: block; }
 
-  /* ── Slideshow ── */
-  #slideshow-overlay {
-    display: none;
-    position: fixed;
-    top: calc(var(--topbar-h) + env(safe-area-inset-top));
-    left: 0; right: 0; bottom: 0;
-    background: #000;
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    cursor: pointer;
-    pointer-events: none;
-  }
-  #slideshow-overlay.open { display: flex; pointer-events: auto; }
-  .slideshow-img {
-    position: absolute;
-    top: 50%; left: 50%;
-    max-width: 100%; max-height: 100%;
-    width: auto; height: auto;
-    object-fit: contain;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: opacity 1s ease;
-    pointer-events: none;
-  }
-  .slideshow-img.active { opacity: 1; }
-
   /* ── Lightbox ── */
   #lightbox {
     display: none; position: fixed; inset: 0;
@@ -358,10 +310,6 @@
 <div id="topbar">
   <div id="topbar-left">
     <span id="count-badge"></span>
-    <button class="tb-btn" id="slideshow-btn" aria-label="Slideshow">
-      <i class="ti ti-player-play"></i>
-    </button>
-    <input id="slideshow-seconds" type="number" min="1" max="600" step="1" value="5" inputmode="numeric" aria-label="Seconds between slides" />
   </div>
   <div id="wordmark">Archive</div>
   <div id="topbar-right">
