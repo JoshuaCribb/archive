@@ -104,27 +104,16 @@
   #slideshow-seconds::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   #slideshow-seconds:focus { border-color: var(--glass-border-hover); background: rgba(255,255,255,0.07); }
 
-  /* ── Password dialog ── */
-  dialog#auth-dialog {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: #060608;
+  /* ── Password overlay ── */
+  #auth-overlay {
     display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
+    position: fixed; inset: 0; z-index: 9999;
+    background: #060608;
+    flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    pointer-events: none;
   }
-  dialog#auth-dialog[open] { display: flex; }
-  dialog#auth-dialog::backdrop { display: none; }
-  dialog#auth-dialog p {
+  #auth-overlay.open { display: flex; pointer-events: auto; }
+  #auth-overlay p {
     font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim);
   }
   #auth-input {
@@ -255,8 +244,9 @@
     justify-content: center;
     overflow: hidden;
     cursor: pointer;
+    pointer-events: none;
   }
-  #slideshow-overlay.open { display: flex; }
+  #slideshow-overlay.open { display: flex; pointer-events: auto; }
   .slideshow-img {
     position: absolute;
     top: 50%; left: 50%;
@@ -275,9 +265,9 @@
     display: none; position: fixed; inset: 0;
     background: #000; z-index: 200;
     flex-direction: column; align-items: stretch;
-    will-change: transform, opacity;
+    pointer-events: none;
   }
-  #lightbox.open { display: flex; }
+  #lightbox.open { display: flex; pointer-events: auto; }
 
   #lb-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -446,13 +436,13 @@
   Refresh
 </button>
 
-<!-- Password dialog — native <dialog> for iOS PWA touch compatibility -->
-<dialog id="auth-dialog">
+<!-- Password overlay -->
+<div id="auth-overlay">
   <p id="auth-label">Enter password to continue</p>
   <input id="auth-input" type="password" placeholder="••••••••" autocomplete="current-password" />
   <button id="auth-submit">Unlock</button>
   <button id="auth-cancel">Cancel</button>
-</dialog>
+</div>
 
 <script>
 const SB_URL   = 'https://srunklqdxxuaicpzjrpz.supabase.co';
@@ -505,7 +495,7 @@ async function dbDelete(id) {
   const tabUrlPanel    = document.getElementById('tab-url-panel');
   const tabUploadPanel = document.getElementById('tab-upload-panel');
   const swipeHint      = document.getElementById('swipe-hint');
-  const authDialog     = document.getElementById('auth-dialog');
+  const authOverlay    = document.getElementById('auth-overlay');
   const authInput      = document.getElementById('auth-input');
   const authSubmit     = document.getElementById('auth-submit');
   const authCancel     = document.getElementById('auth-cancel');
@@ -521,13 +511,13 @@ async function dbDelete(id) {
     if (unlocked) { action(); return; }
     pendingAction = action;
     authInput.value = '';
-    authDialog.showModal();
+    authOverlay.classList.add('open');
   }
 
   function attemptUnlock() {
     if (authInput.value === PASSWORD) {
       unlocked = true;
-      authDialog.close();
+      authOverlay.classList.remove('open');
       if (pendingAction) { const fn = pendingAction; pendingAction = null; fn(); }
     } else {
       authInput.value = '';
@@ -539,7 +529,7 @@ async function dbDelete(id) {
 
   authSubmit.addEventListener('click', attemptUnlock);
   authInput.addEventListener('keydown', e => { if (e.key === 'Enter') attemptUnlock(); });
-  authCancel.addEventListener('click', () => { authDialog.close(); pendingAction = null; });
+  authCancel.addEventListener('click', () => { authOverlay.classList.remove('open'); pendingAction = null; });
 
   const setSync = s => syncDot.className = s;
 
